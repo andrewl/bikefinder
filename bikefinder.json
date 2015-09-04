@@ -13,9 +13,21 @@
   "ingestion_uri": "http://www.tfl.gov.uk/serco/syndication/feeds/cycle-hire/livecyclehireupdates.xml"
 },
 {
-  "id": "brussels",
-  "type": "Villo",
+  "id": "paris",
+  "type": "JCDecaux",
   "public_uri": "",
-  "ingestion_uri": "http://www.en.villo.be/service/carto"
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Paris"
+},
+{
+  "id": "toyama",
+  "type": "JCDecaux",
+  "public_uri": "",
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Toyama"
+},
+{
+  "id": "seville",
+  "type": "JCDecaux",
+  "public_uri": "",
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Seville"
 }
 ]

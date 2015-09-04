@@ -3,9 +3,9 @@ to load influxdb
 
 $INFLUX_USER=
 $INFLUX_PWD=
+$JCDECAUX_API_KEY
 
 @todo
 proper logging
 error handling
-split out different types of provider
 add new schemes

@@ -1,7 +1,6 @@
 package main
 
 import "net/http"
-import "encoding/xml"
 import "encoding/json"
 import "fmt"
 import "os"
@@ -20,176 +19,6 @@ const (
 	//@todo - tidy up nomenclature
 	MyMeasurement = "locations"
 )
-
-type BikeHireScheme interface {
-	GetDockingStations() ([]dockingStation, error)
-}
-
-type BiciScheme struct {
-	name string
-	url  string
-}
-
-type VilloScheme struct {
-	name string
-	url  string
-}
-
-type SercoScheme struct {
-	//@todo - should this all be config?
-	name string
-	url  string
-}
-
-func cycleHireSchemeFactory(cycleHireSchemeType string, url string) (BikeHireScheme, error) {
-
-	switch cycleHireSchemeType {
-	case "Villo":
-		return VilloScheme{url: url, name: cycleHireSchemeType}, nil
-	case "Serco":
-		return SercoScheme{url: url, name: cycleHireSchemeType}, nil
-	case "Bici":
-		return BiciScheme{url: url, name: cycleHireSchemeType}, nil
-
-	}
-
-	return nil, fmt.Errorf("cycleHireSchemeType not found")
-}
-
-//@todo - add the scheme id in here?
-type dockingStation struct {
-	SchemeID string
-	Id       string `xml:"id"`
-	Name     string `xml:"name"`
-	Lat      string `xml:"lat"`
-	Lon      string `xml:"long"`
-	Bikes    int64  `xml:"nbBikes"`
-	Docks    int64  `xml:"nbEmptyDocks"`
-}
-
-func (scheme BiciScheme) GetDockingStations() ([]dockingStation, error) {
-
-	type biciStations struct {
-		Id    string `json:"id"`
-		Name  string `json:"name"`
-		Lat   string `json:"lat"`
-		Lon   string `json:"lon"`
-		Bikes string `json:"bikes"`
-		Docks string `json:"slots"`
-	}
-
-	resp, err := http.Get(scheme.url)
-	if err != nil {
-		return []dockingStation{}, err
-	}
-
-	defer resp.Body.Close()
-
-	dockingStations := []dockingStation{}
-
-	var bs = []biciStations{}
-
-	if err := json.NewDecoder(resp.Body).Decode(&bs); err != nil {
-		return []dockingStation{}, err
-	}
-
-	for _, station := range bs {
-		var ds dockingStation
-		//@todo add lat-long etc
-		ds.SchemeID = scheme.name
-		ds.Id = station.Id
-		ds.Lat = station.Lat
-		ds.Lon = station.Lon
-		ds.Name = station.Name
-		ds.Bikes, err = strconv.ParseInt(station.Bikes, 10, 64)
-		ds.Docks, err = strconv.ParseInt(station.Docks, 10, 64)
-		dockingStations = append(dockingStations, ds)
-	}
-
-	return dockingStations, nil
-}
-
-func (scheme VilloScheme) GetDockingStations() ([]dockingStation, error) {
-
-	type carto struct {
-		Markers struct {
-			Marker []struct {
-				Number  string `xml:"number,attr"`
-				Address string `xml:"address,attr"`
-			} `xml:"marker"`
-		} `xml:"markers"`
-	}
-
-	type cartoStation struct {
-		Available string `xml:"available"`
-		Free      string `xml:"free"`
-	}
-
-	resp, err := http.Get(scheme.url)
-	if err != nil {
-		return []dockingStation{}, err
-	}
-
-	defer resp.Body.Close()
-
-	var d carto
-
-	if err := xml.NewDecoder(resp.Body).Decode(&d); err != nil {
-		return []dockingStation{}, err
-	}
-
-	dockingStations := []dockingStation{}
-
-	//@todo use go subroutines
-	for _, value := range d.Markers.Marker {
-		//@todo - remove hardcoded bruxelles - maybe an additional parameter?
-		stationResp, err := http.Get("http://en.villo.be/service/stationdetails/bruxelles/" + value.Number)
-		defer stationResp.Body.Close()
-		var s cartoStation
-		if err == nil {
-			if err := xml.NewDecoder(stationResp.Body).Decode(&s); err == nil {
-				var ds dockingStation
-				//@todo add lat-long etc
-				ds.SchemeID = scheme.name
-				ds.Name = value.Address
-				ds.Bikes, err = strconv.ParseInt(s.Available, 10, 64)
-				ds.Docks, err = strconv.ParseInt(s.Free, 10, 64)
-				dockingStations = append(dockingStations, ds)
-			}
-		}
-	}
-
-	return dockingStations, nil
-
-}
-
-func (scheme SercoScheme) GetDockingStations() (dockingStations []dockingStation, err error) {
-
-	type sercoDockingStations struct {
-		DockingStations []dockingStation `xml:"station"`
-	}
-
-	resp, err := http.Get(scheme.url)
-	if err != nil {
-		return dockingStations, err
-	}
-
-	defer resp.Body.Close()
-
-	var d sercoDockingStations
-
-	if err := xml.NewDecoder(resp.Body).Decode(&d); err != nil {
-		return dockingStations, err
-		//return []dockingStation{}, err
-	}
-
-	for _, dockingStation := range d.DockingStations {
-		dockingStation.SchemeID = scheme.name
-		dockingStations = append(dockingStations, dockingStation)
-	}
-
-	return dockingStations, err
-}
 
 func parseInfluxResults(res []client.Result) (dockingStations []dockingStation, err error) {
 
@@ -294,7 +123,7 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 
 	var bikeHireSchemes = []BikeHireScheme{}
 	for _, schemeConfig := range configuration {
-		newScheme, err := cycleHireSchemeFactory(schemeConfig.Type, schemeConfig.IngestionUri)
+		newScheme, err := bikeHireSchemeFactory(schemeConfig.Type, schemeConfig.IngestionUri)
 		if err != nil {
 			fmt.Println("error:", err)
 		}
@@ -327,6 +156,8 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 
 	//@todo - these should be run concurrently!!!
 	for _, bikeHireScheme := range bikeHireSchemes {
+		fmt.Printf("%v\n", bikeHireScheme)
+
 		data, err := bikeHireScheme.GetDockingStations()
 		if err != nil {
 			println(err)
@@ -367,8 +198,6 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 
-		fmt.Printf("%v\n", data)
-		fmt.Printf("%v\n", bps.Points)
 	}
 
 }
