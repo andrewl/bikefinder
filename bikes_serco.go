@@ -16,12 +16,12 @@ func (scheme SercoScheme) GetDockingStations() (dockingStations []dockingStation
 		Name  string `xml:"name"`
 		Lat   string `xml:"lat"`
 		Lon   string `xml:"long"`
-		Bikes int64  `xml:"nbBikes"`
-		Docks int64  `xml:"nbEmptyDocks"`
+		Bikes int    `xml:"nbBikes"`
+		Docks int    `xml:"nbEmptyDocks"`
 	}
 
 	type sercoDockingStations struct {
-		DockingStations []dockingStation `xml:"station"`
+		DockingStations []sercoDockingStation `xml:"station"`
 	}
 
 	resp, err := http.Get(scheme.url)
@@ -37,9 +37,16 @@ func (scheme SercoScheme) GetDockingStations() (dockingStations []dockingStation
 		return dockingStations, err
 	}
 
-	for _, dockingStation := range d.DockingStations {
-		dockingStation.SchemeID = scheme.name
-		dockingStations = append(dockingStations, dockingStation)
+	for _, sercoDockingStation := range d.DockingStations {
+		var ds dockingStation
+		ds.Lat = sercoDockingStation.Lat
+		ds.Lon = sercoDockingStation.Lon
+		ds.DockId = sercoDockingStation.Id
+		ds.Name = sercoDockingStation.Name
+		ds.Bikes = sercoDockingStation.Bikes
+		ds.Docks = sercoDockingStation.Docks
+		ds.SchemeID = scheme.name
+		dockingStations = append(dockingStations, ds)
 	}
 
 	return dockingStations, err

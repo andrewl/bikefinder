@@ -1,6 +1,7 @@
 package main
 
 import "fmt"
+import "time"
 
 type BikeHireScheme interface {
 	GetDockingStations() ([]dockingStation, error)
@@ -23,13 +24,17 @@ func bikeHireSchemeFactory(cycleHireSchemeType string, url string) (BikeHireSche
 	return nil, fmt.Errorf("cycleHireSchemeType %s not found", cycleHireSchemeType)
 }
 
-//@todo - add the scheme id in here?
 type dockingStation struct {
+	Time     time.Time
 	SchemeID string
-	Id       string
+	DockId   string
 	Name     string
 	Lat      string
 	Lon      string
-	Bikes    int64
-	Docks    int64
+	Bikes    int
+	Docks    int
+	// temperature * 10 degrees
+	Temperature int
+	// precipitation * 10 mm
+	Precipitation int
 }

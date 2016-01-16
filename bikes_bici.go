@@ -42,12 +42,12 @@ func (scheme BiciScheme) GetDockingStations() ([]dockingStation, error) {
 		var ds dockingStation
 		//@todo add lat-long etc
 		ds.SchemeID = scheme.name
-		ds.Id = station.Id
+		ds.DockId = station.Id
 		ds.Lat = station.Lat
 		ds.Lon = station.Lon
 		ds.Name = station.Name
-		ds.Bikes, err = strconv.ParseInt(station.Bikes, 10, 64)
-		ds.Docks, err = strconv.ParseInt(station.Docks, 10, 64)
+		ds.Bikes, err = strconv.Atoi(station.Bikes)
+		ds.Docks, err = strconv.Atoi(station.Docks)
 		dockingStations = append(dockingStations, ds)
 	}
 

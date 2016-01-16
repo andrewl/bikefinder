@@ -46,12 +46,12 @@ func (scheme JCDecauxScheme) GetDockingStations() ([]dockingStation, error) {
 		var ds dockingStation
 		//@todo add lat-long etc
 		ds.SchemeID = scheme.name
-		ds.Id = strconv.Itoa(station.Number)
+		ds.DockId = strconv.Itoa(station.Number)
 		ds.Name = station.Name
 		ds.Lat = strconv.FormatFloat(station.Position.Lat, 'f', -1, 64)
 		ds.Lon = strconv.FormatFloat(station.Position.Lng, 'f', -1, 64)
-		ds.Bikes = station.Bikes
-		ds.Docks = station.Docks
+		ds.Bikes = int(station.Bikes)
+		ds.Docks = int(station.Docks)
 		dockingStations = append(dockingStations, ds)
 	}
 
