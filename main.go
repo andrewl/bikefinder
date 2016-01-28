@@ -12,7 +12,12 @@ import (
 
 func main() {
 	http.HandleFunc("/ingest", ingest)
-	http.ListenAndServe(":8163", nil)
+	bind := fmt.Sprintf("%s:%s", os.Getenv("OPENSHIFT_GO_IP"), os.Getenv("OPENSHIFT_GO_PORT"))
+	fmt.Printf("listening on %s...", bind)
+	err := http.ListenAndServe(bind, nil)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func ingest(w http.ResponseWriter, r *http.Request) {
