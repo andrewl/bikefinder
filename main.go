@@ -30,7 +30,8 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		IngestionUri string `json:"ingestion_uri"`
 		PublicUri    string `json:"public_uri"`
 	}
-	file, _ := os.Open("./bikefinder.json")
+	fmt.Println("config at ", os.Getenv("BIKEFINDER_CONFIG"))
+	file, _ := os.Open(os.Getenv("BIKEFINDER_CONFIG"))
 	decoder := json.NewDecoder(file)
 	configuration := []Configuration{}
 	err := decoder.Decode(&configuration)
