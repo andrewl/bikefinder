@@ -41,6 +41,8 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("%v\n", configuration)
 
+	var requestTime = time.Now()
+
 	var bikeHireSchemes = []BikeHireScheme{}
 	for _, schemeConfig := range configuration {
 		newScheme, err := bikeHireSchemeFactory(schemeConfig.Type, schemeConfig.IngestionUri)
@@ -75,7 +77,7 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 
 		for _, dockingStation := range data {
 			println(dockingStation.Name)
-			dockingStation.Time = time.Now()
+			dockingStation.Time = requestTime
 			err := DB.Create(dockingStation)
 			if err != nil {
 				println("There was an error creating a docking station record")
