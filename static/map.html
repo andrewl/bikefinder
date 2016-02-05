@@ -63,7 +63,7 @@
         if (!e.layer.feature.properties) return;
         feature = e.layer.feature;
         var latlng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0])
-        content = "<h1>" + feature.properties.name + "</h1><strong>Bikes: </strong>" + feature.properties.bikes + "<br/><strong>Docks: </strong>" + feature.properties.docks + "<br/><div id='sparkline'></div>";
+        content = "<h1>" + feature.properties.name + "</h1><strong>Bikes: </strong>" + feature.properties.bikes + "<br/><strong>Docks: </strong>" + feature.properties.docks + "<br/><div id='sparkline'>Loading history...</div>";
         var popup = L.popup()
         .setLatLng(latlng)
         .setContent(content)
@@ -74,7 +74,8 @@
           $.each(data, function(i, d) {
             sparkline_data.push(d.Bikes+":"+d.Docks)
           });
-          $("#sparkline").sparkline(sparkline_data, {type: 'bar'});
+          $("#sparkline").sparkline(sparkline_data, {type: 'bar', barWidth: 1,
+              barSpacing: 0});
         });
 
       });
