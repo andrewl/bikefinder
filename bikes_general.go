@@ -25,7 +25,7 @@ func bikeHireSchemeFactory(cycleHireSchemeType string, url string) (BikeHireSche
 }
 
 type dockingStation struct {
-	Time     time.Time
+	Time     time.Time `sql:"timestamp"`
 	SchemeID string
 	DockId   string
 	Name     string
