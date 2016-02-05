@@ -48,8 +48,6 @@
         }
 
         layer.setIcon(L.mapbox.marker.icon({'marker-symbol': 'bicycle', 'marker-color': color}));
-
-        //layer.bindPopup("<h1>" + feature.properties.name + "</h1><strong>Bikes: </strong>" + feature.properties.bikes + "<br/><strong>Docks: </strong>" + feature.properties.docks);
       }
     });
     markers.addLayer(geojson);
@@ -63,7 +61,7 @@
         if (!e.layer.feature.properties) return;
         feature = e.layer.feature;
         var latlng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0])
-        content = "<h1>" + feature.properties.name + "</h1><strong>Bikes: </strong>" + feature.properties.bikes + "<br/><strong>Docks: </strong>" + feature.properties.docks + "<br/><div id='sparkline'>Loading history...</div>";
+        content = "<h1>" + feature.properties.name + "</h1><strong>Bikes: </strong>" + feature.properties.bikes + "<br/><strong>Docks: </strong>" + feature.properties.docks + "<br/><div id='sparkline_container' style='width: 200px'><div id='sparkline'>Loading history...</div></div>";
         var popup = L.popup()
         .setLatLng(latlng)
         .setContent(content)
