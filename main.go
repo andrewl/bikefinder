@@ -14,6 +14,7 @@ import (
 
 func main() {
 	http.HandleFunc("/stations", stations)
+	http.HandleFunc("/station", station)
 	http.HandleFunc("/ingest", ingest)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	bind := fmt.Sprintf("%s:%s", os.Getenv("OPENSHIFT_GO_IP"), os.Getenv("OPENSHIFT_GO_PORT"))
@@ -24,21 +25,52 @@ func main() {
 	}
 }
 
-func stations(w http.ResponseWriter, r *http.Request) {
+func station(w http.ResponseWriter, r *http.Request) {
+
+	dock_id := r.URL.Query().Get("i")
+	scheme_id := r.URL.Query().Get("s")
+
 	//@todo 'globalise' this
 	var DB *crud.DB
 	fmt.Println(os.Getenv("DATABASE_URL"))
 	DB, _ = crud.Connect("mysql", os.Getenv("DATABASE_URL"))
 
-	/**
-	maxtime := time.Time{}
-	err := DB.Read(maxtime, "select max(time) from docking_station")
+	dockingStations := []*dockingStation{}
+	fmt.Println(dock_id)
+	err := DB.Read(&dockingStations, "WHERE scheme_id = \""+scheme_id+"\" and dock_id = \""+dock_id+"\" and time >= now() - INTERVAL 1 DAY order by time asc")
 	if err != nil {
 		fmt.Println("err")
 		fmt.Println(err)
 	}
-	fmt.Printf("%+v", maxtime)
-	*/
+
+	type History struct {
+		Time  time.Time
+		Bikes int
+		Docks int
+	}
+
+	history := []History{}
+	for _, dockingStation := range dockingStations {
+		var pointInTime History
+		pointInTime.Time = dockingStation.Time
+		pointInTime.Docks = dockingStation.Docks
+		pointInTime.Bikes = dockingStation.Bikes
+		history = append(history, pointInTime)
+	}
+
+	json, err := json.Marshal(history)
+
+	w.Header().Set("Server", "bikefinder")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+
+}
+
+func stations(w http.ResponseWriter, r *http.Request) {
+	//@todo 'globalise' this
+	var DB *crud.DB
+	fmt.Println(os.Getenv("DATABASE_URL"))
+	DB, _ = crud.Connect("mysql", os.Getenv("DATABASE_URL"))
 
 	dockingStations := []*dockingStation{}
 	err := DB.Read(&dockingStations, "WHERE time = (SELECT max(time) from docking_station)")
@@ -50,7 +82,7 @@ func stations(w http.ResponseWriter, r *http.Request) {
 
 	features := []*gj.Feature{}
 	for _, dockingStation := range dockingStations {
-		properties := map[string]interface{}{"name": dockingStation.Name, "code": dockingStation.DockId, "bikes": dockingStation.Bikes, "docks": dockingStation.Docks}
+		properties := map[string]interface{}{"name": dockingStation.Name, "s": dockingStation.SchemeID, "i": dockingStation.DockId, "bikes": dockingStation.Bikes, "docks": dockingStation.Docks, "history": "/station"}
 		lat, _ := strconv.ParseFloat(dockingStation.Lat, 64)
 		lon, _ := strconv.ParseFloat(dockingStation.Lon, 64)
 		p := gj.NewPoint(gj.Coordinate{gj.CoordType(lon), gj.CoordType(lat)})
