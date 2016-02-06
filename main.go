@@ -6,6 +6,7 @@ import "fmt"
 import "os"
 import "time"
 import "strconv"
+import "io/ioutil"
 import gj "github.com/kpawlik/geojson"
 import (
 	"github.com/azer/crud"
@@ -13,7 +14,7 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/stations", stations)
+	//http.HandleFunc("/stations", stations)
 	http.HandleFunc("/station", station)
 	http.HandleFunc("/ingest", ingest)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
@@ -66,7 +67,9 @@ func station(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func stations(w http.ResponseWriter, r *http.Request) {
+//func stations(w http.ResponseWriter, r *http.Request) {
+func write_stations() {
+
 	//@todo 'globalise' this
 	var DB *crud.DB
 	fmt.Println(os.Getenv("DATABASE_URL"))
@@ -92,9 +95,12 @@ func stations(w http.ResponseWriter, r *http.Request) {
 
 	json, err := json.Marshal(features)
 
-	w.Header().Set("Server", "bikefinder")
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(json)
+	err = ioutil.WriteFile("./static/stations.json", []byte(json), 0644)
+
+	if err != nil {
+		fmt.Println("err")
+		fmt.Println(err)
+	}
 
 }
 
@@ -164,4 +170,6 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	write_stations()
 }

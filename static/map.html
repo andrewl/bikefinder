@@ -4,8 +4,8 @@
 <meta charset=utf-8 />
 <title>Bikefinder</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='https://code.jquery.com/jquery-1.11.0.min.js'></script>
-    <script src="http://omnipotent.net/jquery.sparkline/2.1.2/jquery.sparkline.min.js.gz"></script>
+<script src='https://code.jquery.com/jquery-1.11.0.min.js'></script>
+<script src="http://omnipotent.net/jquery.sparkline/2.1.2/jquery.sparkline.min.js.gz"></script>
 <script src='https://api.mapbox.com/mapbox.js/v2.2.4/mapbox.js'></script>
 <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/leaflet.markercluster.js'></script>
 <link href='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.css' rel='stylesheet' />
@@ -28,12 +28,17 @@
     maxZoom: 18
   });
  
-       // DEFINE THE CLUSTER LAYER
-         var markers = L.markerClusterGroup();
+  // DEFINE THE CLUSTER LAYER
+  var markers = L.markerClusterGroup();
 
 
 // CALL THE GEOJSON HERE
-  $.getJSON("/stations", function(data) {
+  $.getJSON("/stations.json", function(data) {
+
+    // CONSTRUCT THE MAP
+    var map = L.mapbox.map('map', 'mapbox.streets');
+    baseLayer.addTo(map);
+
     var geojson = L.geoJson(data, {
       onEachFeature: function (feature, layer) {
         // USE A CUSTOM MARKER
@@ -51,10 +56,8 @@
       }
     });
     markers.addLayer(geojson);
+    map.fitBounds(markers.getBounds());
 
-    // CONSTRUCT THE MAP
-    var map = L.mapbox.map('map', 'mapbox.streets').fitBounds(markers.getBounds());
-    baseLayer.addTo(map);
     markers.addTo(map);
 
     markers.on('click', function(e) {
