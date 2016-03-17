@@ -12,6 +12,26 @@
   "public_uri": "",
   "ingestion_uri": "http://www.tfl.gov.uk/serco/syndication/feeds/cycle-hire/livecyclehireupdates.xml"
 },
+
+{
+  "id": "vilnius",
+  "type": "JCDecaux",
+  "public_uri": "",
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Vilnius"
+},
+{
+  "id": "lillestrom",
+  "type": "JCDecaux",
+  "public_uri": "",
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Lillestrom",
+  "save": "true"
+},
+{
+  "id": "dublin",
+  "type": "JCDecaux",
+  "public_uri": "",
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Dublin"
+},
 {
   "id": "paris",
   "type": "JCDecaux",
