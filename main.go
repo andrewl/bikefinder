@@ -14,7 +14,6 @@ import (
 )
 
 func main() {
-	//http.HandleFunc("/stations", stations)
 	http.HandleFunc("/station", station)
 	http.HandleFunc("/ingest", ingest)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
@@ -125,8 +124,6 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("%v\n", configuration)
 
-	var requestTime = time.Now()
-
 	var bikeHireSchemes = []BikeHireScheme{}
 	for _, schemeConfig := range configuration {
 		newScheme, err := bikeHireSchemeFactory(schemeConfig.Type, schemeConfig.IngestionUri)
@@ -139,7 +136,7 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var DB *crud.DB
-	fmt.Println(os.Getenv("DATABASE_URL"))
+	// fmt.Println(os.Getenv("DATABASE_URL"))
 	DB, err = crud.Connect("mysql", os.Getenv("DATABASE_URL"))
 	err = DB.Ping()
 
@@ -149,27 +146,49 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//@todo - delete data older than one day. @todo - how to archive this?
+	//one option is to backup to s3 then use lambda to run some task to
+	//add data to a larger db
+
 	//@todo - these should be run concurrently!!!
+	msgc, errc := make(chan string), make(chan error)
 	for _, bikeHireScheme := range bikeHireSchemes {
-		fmt.Printf("%v\n", bikeHireScheme)
+		go retrieveDockingStations(bikeHireScheme, DB, msgc, errc)
+	}
 
-		data, err := bikeHireScheme.GetDockingStations()
-		if err != nil {
-			println(err)
-			return
-		}
-
-		for _, dockingStation := range data {
-			println(dockingStation.Name)
-			dockingStation.Time = requestTime
-			err := DB.Create(dockingStation)
-			if err != nil {
-				println("There was an error creating a docking station record")
-				println(err)
-				return
-			}
+	for i := 0; i < len(bikeHireSchemes); i++ {
+		select {
+		case msg := <-msgc:
+			fmt.Println(msg)
+		case err := <-errc:
+			fmt.Println(err)
 		}
 	}
 
+	fmt.Println("done")
+
 	write_stations()
+}
+
+func retrieveDockingStations(bikeHireScheme BikeHireScheme, DB *crud.DB, msgc chan string, errc chan error) {
+	fmt.Printf("%v\n", bikeHireScheme)
+	var requestTime = time.Now()
+
+	data, err := bikeHireScheme.GetDockingStations()
+	if err != nil {
+		errc <- err
+		return
+	}
+
+	for _, dockingStation := range data {
+		//println(dockingStation.Name)
+		dockingStation.Time = requestTime
+		err := DB.Create(dockingStation)
+		if err != nil {
+			errc <- err
+			return
+		}
+	}
+
+	msgc <- "Done"
 }

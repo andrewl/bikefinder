@@ -7,6 +7,8 @@ import "strconv"
 import "log"
 import "fmt"
 
+// import "io/ioutil"
+
 type JCDecauxScheme struct {
 	name string
 	url  string
@@ -26,6 +28,7 @@ func (scheme JCDecauxScheme) GetDockingStations() ([]dockingStation, error) {
 	}
 
 	url := fmt.Sprint(scheme.url, "&apiKey=", os.Getenv("JCDECAUX_API_KEY"))
+	println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Print(err.Error())
