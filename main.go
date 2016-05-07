@@ -13,13 +13,30 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+var DB *crud.DB
+
 func main() {
+	var err error
+
+	fmt.Println(os.Getenv("DATABASE_URL"))
+	DB, err = crud.Connect("mysql", os.Getenv("DATABASE_URL"))
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = DB.CreateTables(dockingStation{})
+	if err != nil {
+		fmt.Println("error: %v", err)
+		return
+	}
+
 	http.HandleFunc("/station", station)
 	http.HandleFunc("/ingest", ingest)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	bind := fmt.Sprintf("%s:%s", os.Getenv("OPENSHIFT_GO_IP"), os.Getenv("OPENSHIFT_GO_PORT"))
 	fmt.Printf("listening on %s...", bind)
-	err := http.ListenAndServe(bind, nil)
+	err = http.ListenAndServe(bind, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -29,11 +46,6 @@ func station(w http.ResponseWriter, r *http.Request) {
 
 	dock_id := r.URL.Query().Get("i")
 	scheme_id := r.URL.Query().Get("s")
-
-	//@todo 'globalise' this
-	var DB *crud.DB
-	fmt.Println(os.Getenv("DATABASE_URL"))
-	DB, _ = crud.Connect("mysql", os.Getenv("DATABASE_URL"))
 
 	dockingStations := []*dockingStation{}
 	fmt.Println(dock_id)
@@ -66,21 +78,9 @@ func station(w http.ResponseWriter, r *http.Request) {
 
 }
 
-//func stations(w http.ResponseWriter, r *http.Request) {
 func write_stations() {
 
-	//@todo 'globalise' this
-	var DB *crud.DB
-	fmt.Println(os.Getenv("DATABASE_URL"))
-	DB, _ = crud.Connect("mysql", os.Getenv("DATABASE_URL"))
-
 	dockingStations := []*dockingStation{}
-	err := DB.Read(&dockingStations, "WHERE time = (SELECT max(time) from docking_station)")
-	//err = DB.Read(&dockingStations)
-	if err != nil {
-		fmt.Println("err")
-		fmt.Println(err)
-	}
 
 	features := []*gj.Feature{}
 	for _, dockingStation := range dockingStations {
@@ -100,7 +100,6 @@ func write_stations() {
 		fmt.Println("err")
 		fmt.Println(err)
 	}
-
 }
 
 func ingest(w http.ResponseWriter, r *http.Request) {
@@ -135,25 +134,9 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var DB *crud.DB
-	// fmt.Println(os.Getenv("DATABASE_URL"))
-	DB, err = crud.Connect("mysql", os.Getenv("DATABASE_URL"))
-	err = DB.Ping()
-
-	err = DB.CreateTables(dockingStation{})
-	if err != nil {
-		fmt.Println("error: %v", err)
-		return
-	}
-
-	//@todo - delete data older than one day. @todo - how to archive this?
-	//one option is to backup to s3 then use lambda to run some task to
-	//add data to a larger db
-
-	//@todo - these should be run concurrently!!!
 	msgc, errc := make(chan string), make(chan error)
 	for _, bikeHireScheme := range bikeHireSchemes {
-		go retrieveDockingStations(bikeHireScheme, DB, msgc, errc)
+		go retrieveDockingStations(bikeHireScheme, msgc, errc)
 	}
 
 	for i := 0; i < len(bikeHireSchemes); i++ {
@@ -165,12 +148,12 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fmt.Println("done")
+	fmt.Println("Done Ingesting")
 
 	write_stations()
 }
 
-func retrieveDockingStations(bikeHireScheme BikeHireScheme, DB *crud.DB, msgc chan string, errc chan error) {
+func retrieveDockingStations(bikeHireScheme BikeHireScheme, msgc chan string, errc chan error) {
 	fmt.Printf("%v\n", bikeHireScheme)
 	var requestTime = time.Now()
 
@@ -181,12 +164,15 @@ func retrieveDockingStations(bikeHireScheme BikeHireScheme, DB *crud.DB, msgc ch
 	}
 
 	for _, dockingStation := range data {
-		//println(dockingStation.Name)
 		dockingStation.Time = requestTime
-		err := DB.Create(dockingStation)
+		dockingStation.Id = dockingStation.SchemeID + dockingStation.DockId
+		err := DB.Update(dockingStation)
 		if err != nil {
-			errc <- err
-			return
+			err = DB.Create(dockingStation)
+			if err != nil {
+				errc <- err
+				return
+			}
 		}
 	}
 
