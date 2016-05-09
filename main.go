@@ -12,8 +12,10 @@ import (
 	"github.com/azer/crud"
 	_ "github.com/go-sql-driver/mysql"
 )
+import "sync"
 
 var DB *crud.DB
+var ingest_mutex = &sync.Mutex{}
 
 func main() {
 	var err error
@@ -134,6 +136,8 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	ingest_mutex.Lock()
+	defer ingest_mutex.Unlock()
 	msgc, errc := make(chan string), make(chan error)
 	for _, bikeHireScheme := range bikeHireSchemes {
 		go retrieveDockingStations(bikeHireScheme, msgc, errc)
