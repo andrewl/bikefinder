@@ -33,7 +33,11 @@ func main() {
 		return
 	}
 
-	http.HandleFunc("/station", station)
+	//@todo - returns all stations. get from a file created using ingest?
+	http.HandleFunc("/stations", station)
+	//@todo - get info about a specific station - maybe history etc?
+	http.HandleFunc("/station/station-id", station)
+
 	http.HandleFunc("/ingest", ingest)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	bind := fmt.Sprintf("%s:%s", os.Getenv("OPENSHIFT_GO_IP"), os.Getenv("OPENSHIFT_GO_PORT"))
@@ -80,9 +84,19 @@ func station(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func write_stations() {
+/**
+ * Outputs the latest docking stations to a json file.
+ * @todo this does two things. exports the raw json for archiving to S3(?)
+ * but also produces the list of stations for consumption by the app
+ * and that should be treated as a cache which is invalidated by
+ * ingest. To be split out from this function and called if the file
+ * does not exist in response to a call from /stations?
+ */
+func write_current_stations_to_json() {
 
 	dockingStations := []*dockingStation{}
+
+	err := DB.Read(&dockingStations)
 
 	features := []*gj.Feature{}
 	for _, dockingStation := range dockingStations {
@@ -94,9 +108,16 @@ func write_stations() {
 		features = append(features, f)
 	}
 
-	json, err := json.Marshal(features)
+	static_json, err := json.Marshal(features)
+	err = ioutil.WriteFile("./static/stations.json", []byte(static_json), 0644)
 
-	err = ioutil.WriteFile("./static/stations.json", []byte(json), 0644)
+	if err != nil {
+		fmt.Println("err")
+		fmt.Println(err)
+	}
+
+	static_json, err = json.Marshal(dockingStations)
+	err = ioutil.WriteFile("./static/latest.json", []byte(static_json), 0644)
 
 	if err != nil {
 		fmt.Println("err")
@@ -123,11 +144,10 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("error:", err)
 		return
 	}
-	fmt.Printf("%v\n", configuration)
 
 	var bikeHireSchemes = []BikeHireScheme{}
 	for _, schemeConfig := range configuration {
-		newScheme, err := bikeHireSchemeFactory(schemeConfig.Type, schemeConfig.IngestionUri)
+		newScheme, err := bikeHireSchemeFactory(schemeConfig.Id, schemeConfig.Type, schemeConfig.IngestionUri)
 		if err != nil {
 			fmt.Println("error:", err)
 		}
@@ -136,6 +156,7 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// We put a lock here because we don't want multiple processes overwriting data. This ensures that the most recent data is always written into the DB.
 	ingest_mutex.Lock()
 	defer ingest_mutex.Unlock()
 	msgc, errc := make(chan string), make(chan error)
@@ -154,9 +175,11 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Done Ingesting")
 
-	write_stations()
+	write_current_stations_to_json()
 }
 
+//@todo run this on the bikeHireScheme struct.
+//@todo this should be retrievestatus I guess?
 func retrieveDockingStations(bikeHireScheme BikeHireScheme, msgc chan string, errc chan error) {
 	fmt.Printf("%v\n", bikeHireScheme)
 	var requestTime = time.Now()
@@ -169,7 +192,7 @@ func retrieveDockingStations(bikeHireScheme BikeHireScheme, msgc chan string, er
 
 	for _, dockingStation := range data {
 		dockingStation.Time = requestTime
-		dockingStation.Id = dockingStation.SchemeID + dockingStation.DockId
+		dockingStation.Id = dockingStation.SchemeID + "-" + dockingStation.DockId
 		err := DB.Update(dockingStation)
 		if err != nil {
 			err = DB.Create(dockingStation)
