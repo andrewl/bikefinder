@@ -13,6 +13,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 import "sync"
+import "github.com/aws/aws-sdk-go/aws"
+import "github.com/aws/aws-sdk-go/aws/session"
+import "github.com/aws/aws-sdk-go/service/s3"
+import "bytes"
 
 var DB *crud.DB
 var ingest_mutex = &sync.Mutex{}
@@ -123,6 +127,25 @@ func write_current_stations_to_json() {
 		fmt.Println("err")
 		fmt.Println(err)
 	}
+
+	svc := s3.New(session.New(), &aws.Config{Region: aws.String("us-west-2")})
+	params := &s3.PutObjectInput{
+		Bucket: aws.String("al-bikefinder"),                          // Required
+		Key:    aws.String(time.Now().Format("20060102150405.json")), // Required
+		Body:   bytes.NewReader([]byte(static_json))}
+
+	resp, err := svc.PutObject(params)
+
+	if err != nil {
+		// Print the error, cast err to awserr.Error to get the Code and
+		// Message from an error.
+		fmt.Println(err.Error())
+		return
+	}
+
+	// Pretty-print the response data.
+	fmt.Println(resp)
+
 }
 
 func ingest(w http.ResponseWriter, r *http.Request) {
@@ -190,16 +213,26 @@ func retrieveDockingStations(bikeHireScheme BikeHireScheme, msgc chan string, er
 		return
 	}
 
-	for _, dockingStation := range data {
-		dockingStation.Time = requestTime
-		dockingStation.Id = dockingStation.SchemeID + "-" + dockingStation.DockId
-		err := DB.Update(dockingStation)
+	// Update an existing docking station or create a new one
+	// Turn this into an upsert function?
+	for _, ds_update := range data {
+		ds_update.Time = requestTime
+		ds_update.SchemeDockId = ds_update.SchemeID + "-" + ds_update.DockId
+		ds := dockingStation{}
+		err := DB.Read(&ds, "WHERE scheme_dock_id = ?", ds_update.SchemeDockId)
+		if err == nil {
+			ds.Bikes = ds_update.Bikes
+			ds.Docks = ds_update.Docks
+			ds.Temperature = ds_update.Temperature
+			ds.Precipitation = ds_update.Precipitation
+			err = DB.Update(ds)
+		} else {
+			err = DB.Create(ds_update)
+		}
+
 		if err != nil {
-			err = DB.Create(dockingStation)
-			if err != nil {
-				errc <- err
-				return
-			}
+			errc <- err
+			return
 		}
 	}
 

@@ -32,15 +32,15 @@ func bikeHireSchemeFactory(name string, cycleHireSchemeType string, url string) 
 //@todo - this is a status more than a station
 //@todo - we should probably store the time of retrieval, as well as the time of the status ffrom the service (and convert to UTC?)
 type dockingStation struct {
-	Id       string    `primary-key`
-	Time     time.Time `sql:"timestamp"`
-	SchemeID string
-	DockId   string
-	Name     string
-	Lat      string
-	Lon      string
-	Bikes    int
-	Docks    int
+	SchemeDockId string    `sql:"varchar(255) primary-key required"`
+	Time         time.Time `sql:"timestamp"`
+	SchemeID     string
+	DockId       string
+	Name         string
+	Lat          string
+	Lon          string
+	Bikes        int
+	Docks        int
 	// temperature * 10 degrees
 	Temperature int
 	// precipitation * 10 mm
