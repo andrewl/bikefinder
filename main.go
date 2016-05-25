@@ -225,8 +225,10 @@ func retrieveDockingStations(bikeHireScheme BikeHireScheme, msgc chan string, er
 			ds.Docks = ds_update.Docks
 			ds.Temperature = ds_update.Temperature
 			ds.Precipitation = ds_update.Precipitation
-			fmt.Printf("Updating %v\n", ds)
 			err = DB.Update(ds)
+			if err != nil {
+				fmt.Printf("Failed Updating %v\n%v\n", ds, err)
+			}
 		} else {
 			fmt.Printf("Creating %v\n", ds)
 			err = DB.Create(ds_update)
