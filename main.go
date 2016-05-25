@@ -218,12 +218,9 @@ func retrieveDockingStations(bikeHireScheme BikeHireScheme, msgc chan string, er
 		return
 	}
 
-	// Update an existing docking station or create a new one
-	// Turn this into an upsert function?
 	for _, ds := range data {
 		ds.Time = requestTime
 		ds.SchemeDockId = ds.SchemeID + "-" + ds.DockId
-		fmt.Printf("Creating %v\n", ds)
 		err = DB.Create(ds)
 
 		if err != nil {
