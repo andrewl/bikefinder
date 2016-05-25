@@ -182,7 +182,7 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	// We put a lock here because we don't want multiple processes overwriting data. This ensures that the most recent data is always written into the DB.
 	ingest_mutex.Lock()
 	defer ingest_mutex.Unlock()
-	_, err := DB.Query("delete from docking_station")
+	_, err = DB.Query("delete from docking_station")
 	if err != nil {
 		fmt.Println("Failed to delete from docking_station")
 		return
