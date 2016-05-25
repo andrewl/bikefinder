@@ -182,6 +182,11 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	// We put a lock here because we don't want multiple processes overwriting data. This ensures that the most recent data is always written into the DB.
 	ingest_mutex.Lock()
 	defer ingest_mutex.Unlock()
+	_, err := DB.Query("delete from docking_station")
+	if err != nil {
+		fmt.Println("Failed to delete from docking_station")
+		return
+	}
 	msgc, errc := make(chan string), make(chan error)
 	for _, bikeHireScheme := range bikeHireSchemes {
 		go retrieveDockingStations(bikeHireScheme, msgc, errc)
@@ -215,28 +220,15 @@ func retrieveDockingStations(bikeHireScheme BikeHireScheme, msgc chan string, er
 
 	// Update an existing docking station or create a new one
 	// Turn this into an upsert function?
-	for _, ds_update := range data {
-		ds_update.Time = requestTime
-		ds_update.SchemeDockId = ds_update.SchemeID + "-" + ds_update.DockId
-		ds := dockingStation{}
-		err := DB.Read(&ds, "WHERE scheme_dock_id = ?", ds_update.SchemeDockId)
-		if err == nil {
-			ds.Bikes = ds_update.Bikes
-			ds.Docks = ds_update.Docks
-			ds.Temperature = ds_update.Temperature
-			ds.Precipitation = ds_update.Precipitation
-			err = DB.Update(ds)
-			if err != nil {
-				fmt.Printf("Failed Updating %v\n%v\n", ds, err)
-			}
-		} else {
-			fmt.Printf("Creating %v\n", ds)
-			err = DB.Create(ds_update)
-		}
+	for _, ds := range data {
+		ds.Time = requestTime
+		ds.SchemeDockId = ds.SchemeID + "-" + ds.DockId
+		fmt.Printf("Creating %v\n", ds)
+		err = DB.Create(ds)
 
 		if err != nil {
 			errc <- err
-			//return
+			return
 		}
 	}
 
