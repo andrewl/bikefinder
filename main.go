@@ -130,8 +130,8 @@ func write_current_stations_to_json() {
 
 	svc := s3.New(session.New(), &aws.Config{Region: aws.String("us-west-2")})
 	params := &s3.PutObjectInput{
-		Bucket: aws.String("al-bikefinder"),                          // Required
-		Key:    aws.String(time.Now().Format("20060102150405.json")), // Required
+		Bucket: aws.String("al-bikefinder"),                             // Required
+		Key:    aws.String(time.Now().Format("2006/01/02/150405.json")), // Required
 		Body:   bytes.NewReader([]byte(static_json))}
 
 	resp, err := svc.PutObject(params)
