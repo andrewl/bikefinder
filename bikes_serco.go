@@ -4,12 +4,16 @@ import "net/http"
 import "encoding/xml"
 
 type SercoScheme struct {
+	OpenWeather
 	//@todo - should this all be config?
-	name string
-	url  string
+	name   string
+	url    string
+	cityId string
 }
 
-func (scheme SercoScheme) GetDockingStations() (dockingStations []dockingStation, err error) {
+func (scheme SercoScheme) GetDockingStationStatuses() (dockingStationStatuses []DockingStationStatus, err error) {
+
+	weather, _ := scheme.GetCurrentWeatherConditions(scheme.cityId)
 
 	type sercoDockingStation struct {
 		Id    string `xml:"id"`
@@ -26,7 +30,7 @@ func (scheme SercoScheme) GetDockingStations() (dockingStations []dockingStation
 
 	resp, err := http.Get(scheme.url)
 	if err != nil {
-		return dockingStations, err
+		return dockingStationStatuses, err
 	}
 
 	defer resp.Body.Close()
@@ -34,11 +38,11 @@ func (scheme SercoScheme) GetDockingStations() (dockingStations []dockingStation
 	var d sercoDockingStations
 
 	if err := xml.NewDecoder(resp.Body).Decode(&d); err != nil {
-		return dockingStations, err
+		return dockingStationStatuses, err
 	}
 
 	for _, sercoDockingStation := range d.DockingStations {
-		var ds dockingStation
+		var ds DockingStationStatus
 		ds.Lat = sercoDockingStation.Lat
 		ds.Lon = sercoDockingStation.Lon
 		ds.DockId = sercoDockingStation.Id
@@ -46,8 +50,11 @@ func (scheme SercoScheme) GetDockingStations() (dockingStations []dockingStation
 		ds.Bikes = sercoDockingStation.Bikes
 		ds.Docks = sercoDockingStation.Docks
 		ds.SchemeID = scheme.name
-		dockingStations = append(dockingStations, ds)
+		ds.Precipitation = weather.Precipitation
+		ds.Temperature = weather.Temperature
+		ds.Windspeed = weather.Windspeed
+		dockingStationStatuses = append(dockingStationStatuses, ds)
 	}
 
-	return dockingStations, err
+	return dockingStationStatuses, err
 }

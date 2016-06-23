@@ -31,7 +31,7 @@ func main() {
 		panic(err)
 	}
 
-	err = DB.CreateTables(dockingStation{})
+	err = DB.CreateTables(DockingStationStatus{})
 	if err != nil {
 		fmt.Println("error: %v", err)
 		return
@@ -57,9 +57,9 @@ func station(w http.ResponseWriter, r *http.Request) {
 	dock_id := r.URL.Query().Get("i")
 	scheme_id := r.URL.Query().Get("s")
 
-	dockingStations := []*dockingStation{}
+	dockingStationStatuses := []*DockingStationStatus{}
 	fmt.Println(dock_id)
-	err := DB.Read(&dockingStations, "WHERE scheme_id = \""+scheme_id+"\" and dock_id = \""+dock_id+"\" and time >= now() - INTERVAL 1 DAY order by time asc")
+	err := DB.Read(&dockingStationStatuses, "WHERE scheme_id = \""+scheme_id+"\" and dock_id = \""+dock_id+"\" and time >= now() - INTERVAL 1 DAY order by time asc")
 	if err != nil {
 		fmt.Println("err")
 		fmt.Println(err)
@@ -72,7 +72,7 @@ func station(w http.ResponseWriter, r *http.Request) {
 	}
 
 	history := []History{}
-	for _, dockingStation := range dockingStations {
+	for _, dockingStation := range dockingStationStatuses {
 		var pointInTime History
 		pointInTime.Time = dockingStation.Time
 		pointInTime.Docks = dockingStation.Docks
@@ -98,12 +98,12 @@ func station(w http.ResponseWriter, r *http.Request) {
  */
 func write_current_stations_to_json() {
 
-	dockingStations := []*dockingStation{}
+	dockingStationStatuses := []*DockingStationStatus{}
 
-	err := DB.Read(&dockingStations)
+	err := DB.Read(&dockingStationStatuses)
 
 	features := []*gj.Feature{}
-	for _, dockingStation := range dockingStations {
+	for _, dockingStation := range dockingStationStatuses {
 		properties := map[string]interface{}{"name": dockingStation.Name, "s": dockingStation.SchemeID, "i": dockingStation.DockId, "bikes": dockingStation.Bikes, "docks": dockingStation.Docks, "history": "/station"}
 		lat, _ := strconv.ParseFloat(dockingStation.Lat, 64)
 		lon, _ := strconv.ParseFloat(dockingStation.Lon, 64)
@@ -120,7 +120,7 @@ func write_current_stations_to_json() {
 		fmt.Println(err)
 	}
 
-	static_json, err = json.Marshal(dockingStations)
+	static_json, err = json.Marshal(dockingStationStatuses)
 	err = ioutil.WriteFile("./static/latest.json", []byte(static_json), 0644)
 
 	if err != nil {
@@ -150,27 +150,19 @@ func write_current_stations_to_json() {
 
 func ingest(w http.ResponseWriter, r *http.Request) {
 
-	//@todo - should this be shared or part of hire scheme package
-	type Configuration struct {
-		Id           string `json:"id"`
-		Type         string
-		Name         string `json:"name"`
-		IngestionUri string `json:"ingestion_uri"`
-		PublicUri    string `json:"public_uri"`
-	}
 	fmt.Println("config at ", os.Getenv("BIKEFINDER_CONFIG"))
 	file, _ := os.Open(os.Getenv("BIKEFINDER_CONFIG"))
 	decoder := json.NewDecoder(file)
-	configuration := []Configuration{}
+	configuration := []BikeHireSchemeConfig{}
 	err := decoder.Decode(&configuration)
 	if err != nil {
 		fmt.Println("error:", err)
 		return
 	}
 
-	var bikeHireSchemes = []BikeHireScheme{}
+	var bikeHireSchemes = []DockingStationStatusCollector{}
 	for _, schemeConfig := range configuration {
-		newScheme, err := bikeHireSchemeFactory(schemeConfig.Id, schemeConfig.Type, schemeConfig.IngestionUri)
+		newScheme, err := bikeHireSchemeFactory(schemeConfig)
 		if err != nil {
 			fmt.Println("error:", err)
 		}
@@ -182,14 +174,14 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	// We put a lock here because we don't want multiple processes overwriting data. This ensures that the most recent data is always written into the DB.
 	ingest_mutex.Lock()
 	defer ingest_mutex.Unlock()
-	_, err = DB.Query("delete from docking_station")
+	_, err = DB.Query("delete from docking_station_status")
 	if err != nil {
-		fmt.Println("Failed to delete from docking_station")
+		fmt.Println("Failed to delete from docking_station_status")
 		return
 	}
 	msgc, errc := make(chan string), make(chan error)
 	for _, bikeHireScheme := range bikeHireSchemes {
-		go retrieveDockingStations(bikeHireScheme, msgc, errc)
+		go writeDockingStationStatusesToDB(bikeHireScheme, msgc, errc)
 	}
 
 	for i := 0; i < len(bikeHireSchemes); i++ {
@@ -206,23 +198,21 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	write_current_stations_to_json()
 }
 
-//@todo run this on the bikeHireScheme struct.
-//@todo this should be retrievestatus I guess?
-func retrieveDockingStations(bikeHireScheme BikeHireScheme, msgc chan string, errc chan error) {
+func writeDockingStationStatusesToDB(bikeHireScheme DockingStationStatusCollector, msgc chan string, errc chan error) {
 	fmt.Printf("%v\n", bikeHireScheme)
+
 	var requestTime = time.Now()
 
-	data, err := bikeHireScheme.GetDockingStations()
+	data, err := bikeHireScheme.GetDockingStationStatuses()
 	if err != nil {
 		errc <- err
 		return
 	}
 
 	for _, ds := range data {
-		ds.Time = requestTime
+		ds.RequestTime = requestTime
 		ds.SchemeDockId = ds.SchemeID + "-" + ds.DockId
 		err = DB.Create(ds)
-
 		if err != nil {
 			errc <- err
 			return

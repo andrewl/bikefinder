@@ -3,46 +3,54 @@ package main
 import "fmt"
 import "time"
 
-type BikeHireScheme interface {
-	GetDockingStations() ([]dockingStation, error)
+// see https://play.golang.org/p/4uhm2K5e9A !!!!
+type BikeHireSchemeConfig struct {
+	Id           string `json:"id"`
+	Type         string
+	Name         string `json:"name"`
+	IngestionUri string `json:"ingestion_uri"`
+	PublicUri    string `json:"public_uri"`
+	CityId       string `json:"city_id"`
 }
 
-func bikeHireSchemeFactory(name string, cycleHireSchemeType string, url string) (BikeHireScheme, error) {
+type DockingStationStatusCollector interface {
+	GetDockingStationStatuses() ([]DockingStationStatus, error)
+}
 
-	if name == "" {
-		name = cycleHireSchemeType
+func bikeHireSchemeFactory(config BikeHireSchemeConfig) (DockingStationStatusCollector, error) {
+
+	if config.Name == "" {
+		config.Name = config.Id
 	}
 
-	switch cycleHireSchemeType {
+	switch config.Type {
 	case "Villo":
 		//		return VilloScheme{url: url, name: name}, nil
 	case "Serco":
-		return SercoScheme{url: url, name: name}, nil
+		return SercoScheme{url: config.IngestionUri, name: config.Name, cityId: config.CityId}, nil
 	case "Bici":
-		return BiciScheme{url: url, name: name}, nil
+		return BiciScheme{url: config.IngestionUri, name: config.Name, cityId: config.CityId}, nil
 	case "JCDecaux":
-		return JCDecauxScheme{url: url, name: name}, nil
+		return JCDecauxScheme{url: config.IngestionUri, name: config.Name, cityId: config.CityId}, nil
 
 	}
 
-	return nil, fmt.Errorf("cycleHireSchemeType %s not found", cycleHireSchemeType)
+	return nil, fmt.Errorf("cycleHireSchemeType %s not found", config.Type)
 }
 
 //@todo - add json here so we can (un)marshall to/from json
-//@todo - this is a status more than a station
-//@todo - we should probably store the time of retrieval, as well as the time of the status ffrom the service (and convert to UTC?)
-type dockingStation struct {
-	SchemeDockId string    `sql:"varchar(255) primary-key required"`
-	Time         time.Time `sql:"timestamp"`
-	SchemeID     string
-	DockId       string
-	Name         string
-	Lat          string
-	Lon          string
-	Bikes        int
-	Docks        int
-	// temperature * 10 degrees
-	Temperature int
-	// precipitation * 10 mm
+type DockingStationStatus struct {
+	SchemeDockId  string    `sql:"varchar(255) primary-key required"`
+	RequestTime   time.Time `sql:"timestamp"`
+	Time          time.Time `sql:"timestamp"`
+	SchemeID      string
+	DockId        string
+	Name          string
+	Lat           string
+	Lon           string
+	Bikes         int
+	Docks         int
+	Temperature   int
 	Precipitation int
+	Windspeed     int
 }

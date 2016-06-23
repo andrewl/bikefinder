@@ -7,14 +7,16 @@ import "strconv"
 import "log"
 import "fmt"
 
-// import "io/ioutil"
-
 type JCDecauxScheme struct {
-	name string
-	url  string
+	OpenWeather
+	name   string
+	url    string
+	cityId string
 }
 
-func (scheme JCDecauxScheme) GetDockingStations() ([]dockingStation, error) {
+func (scheme JCDecauxScheme) GetDockingStationStatuses() ([]DockingStationStatus, error) {
+
+	weather, _ := scheme.GetCurrentWeatherConditions(scheme.cityId)
 
 	type jcDecauxStation struct {
 		Number   int    `json:"number"`
@@ -32,21 +34,21 @@ func (scheme JCDecauxScheme) GetDockingStations() ([]dockingStation, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Print(err.Error())
-		return []dockingStation{}, err
+		return []DockingStationStatus{}, err
 	}
 
 	defer resp.Body.Close()
 
-	dockingStations := []dockingStation{}
+	dockingStationStatuses := []DockingStationStatus{}
 
 	var d = []jcDecauxStation{}
 
 	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
-		return []dockingStation{}, err
+		return []DockingStationStatus{}, err
 	}
 
 	for _, station := range d {
-		var ds dockingStation
+		var ds DockingStationStatus
 		//@todo add lat-long etc
 		ds.SchemeID = scheme.name
 		ds.DockId = strconv.Itoa(station.Number)
@@ -55,8 +57,11 @@ func (scheme JCDecauxScheme) GetDockingStations() ([]dockingStation, error) {
 		ds.Lon = strconv.FormatFloat(station.Position.Lng, 'f', -1, 64)
 		ds.Bikes = int(station.Bikes)
 		ds.Docks = int(station.Docks)
-		dockingStations = append(dockingStations, ds)
+		ds.Precipitation = weather.Precipitation
+		ds.Temperature = weather.Temperature
+		ds.Windspeed = weather.Windspeed
+		dockingStationStatuses = append(dockingStationStatuses, ds)
 	}
 
-	return dockingStations, nil
+	return dockingStationStatuses, nil
 }

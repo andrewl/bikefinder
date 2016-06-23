@@ -6,40 +6,43 @@ import "strconv"
 import "log"
 
 type BiciScheme struct {
-	name string
-	url  string
+	OpenWeather
+	name   string
+	url    string
+	cityId string
 }
 
-func (scheme BiciScheme) GetDockingStations() ([]dockingStation, error) {
+func (scheme BiciScheme) GetDockingStationStatuses() ([]DockingStationStatus, error) {
 
 	type biciStations struct {
-		Id    string `json:"id"`
-		Name  string `json:"name"`
-		Lat   string `json:"lat"`
-		Lon   string `json:"lon"`
-		Bikes string `json:"bikes"`
-		Docks string `json:"slots"`
+		Id        string `json:"id"`
+		Name      string `json:"name"`
+		Lat       string `json:"lat"`
+		Lon       string `json:"lon"`
+		Bikes     string `json:"bikes"`
+		Docks     string `json:"slots"`
+		WeatherID string `json:"weather_id"`
 	}
 
 	resp, err := http.Get(scheme.url)
 	if err != nil {
 		log.Print("There was an error retrieving ", scheme.url)
-		return []dockingStation{}, err
+		return []DockingStationStatus{}, err
 	}
 
 	defer resp.Body.Close()
 
-	dockingStations := []dockingStation{}
+	dockingStations := []DockingStationStatus{}
 
 	var bs = []biciStations{}
 
 	if err := json.NewDecoder(resp.Body).Decode(&bs); err != nil {
 		log.Print("Failed to decode json")
-		return []dockingStation{}, err
+		return []DockingStationStatus{}, err
 	}
 
 	for _, station := range bs {
-		var ds dockingStation
+		var ds DockingStationStatus
 		//@todo add lat-long etc
 		ds.SchemeID = scheme.name
 		ds.DockId = station.Id

@@ -3,51 +3,59 @@
   "id": "barcelona",
   "type": "Bici",
   "public_uri": "",
-  "ingestion_uri": "https://www.bicing.cat/availability_map/getJsonObject"
+  "ingestion_uri": "https://www.bicing.cat/availability_map/getJsonObject",
+  "city_id": "3128760"
 }
 ,
 {
   "id": "london",
   "type": "Serco",
   "public_uri": "",
-  "ingestion_uri": "http://www.tfl.gov.uk/serco/syndication/feeds/cycle-hire/livecyclehireupdates.xml"
+  "ingestion_uri": "http://www.tfl.gov.uk/serco/syndication/feeds/cycle-hire/livecyclehireupdates.xml",
+  "city_id": "2643743"
 },
 
 {
   "id": "vilnius",
   "type": "JCDecaux",
   "public_uri": "",
-  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Vilnius"
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Vilnius",
+  "city_id": "593116"
 },
 {
   "id": "lillestrom",
   "type": "JCDecaux",
   "public_uri": "",
   "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Lillestrom",
-  "save": "true"
+  "save": "true",
+  "city_id": "3147465"
 },
 {
   "id": "dublin",
   "type": "JCDecaux",
   "public_uri": "",
-  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Dublin"
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Dublin",
+  "city_id": "2964574"
 },
 {
   "id": "paris",
   "type": "JCDecaux",
   "public_uri": "",
-  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Paris"
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Paris",
+  "city_id": "2988507"
 },
 {
   "id": "toyama",
   "type": "JCDecaux",
   "public_uri": "",
-  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Toyama"
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Toyama",
+  "city_id": "1853072"
 },
 {
   "id": "seville",
   "type": "JCDecaux",
   "public_uri": "",
-  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Seville"
+  "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Seville",
+  "city_id": "2510170"
 }
 ]
