@@ -1,0 +1,25 @@
+<html>
+<head>
+<script src="http://zeptojs.com/zepto.min.js"></script>
+</head>
+<body>
+<div id="bikes"></div>
+</body>
+<script>
+Zepto(function($){
+  navigator.geolocation.getCurrentPosition(load_bikes);
+  function load_bikes(position) {
+    $('#bikes').empty();
+    $.ajax({type: 'GET',
+            url: '/bikes-near',
+            data: { lat: position.coords.latitude, lon: position.coords.longitude },
+            success: function(data) {
+              $(data).each(function(index) {
+                $('#bikes').append("<p>" + this.properties.name + " " + this.properties.bikes + " bikes </p>");
+              });
+            }
+           });
+  }
+});
+</script>
+</html>

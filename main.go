@@ -50,8 +50,8 @@ func main() {
 
 func getBikesNear(w http.ResponseWriter, r *http.Request) {
 
-	lat := r.URL.Query().Get("lat")
-	lon := r.URL.Query().Get("lon")
+	lat, _ := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
+	lon, _ := strconv.ParseFloat(r.URL.Query().Get("lon"), 64)
 
 	var dockingStations DockingStations
 	dockingStations.GetBikesNear(lat, lon, 3)
@@ -64,8 +64,8 @@ func getBikesNear(w http.ResponseWriter, r *http.Request) {
 	*/
 
 	features := []*gj.Feature{}
-	for _, DockingStationStatus := range dockingStations.DockingStationStatuses {
-		properties := map[string]int()
+	for _, dockingStationStatus := range dockingStations.DockingStationStatuses {
+		properties := map[string]interface{}{"name": dockingStationStatus.Name, "s": dockingStationStatus.SchemeID, "i": dockingStationStatus.DockId, "bikes": dockingStationStatus.Bikes, "docks": dockingStationStatus.Docks, "history": "/station"}
 		lat, _ := strconv.ParseFloat(dockingStationStatus.Lat, 64)
 		lon, _ := strconv.ParseFloat(dockingStationStatus.Lon, 64)
 		p := gj.NewPoint(gj.Coordinate{gj.CoordType(lon), gj.CoordType(lat)})
@@ -73,7 +73,11 @@ func getBikesNear(w http.ResponseWriter, r *http.Request) {
 		features = append(features, f)
 	}
 
-	ret, err := json.Marshal(dockingStationStatuses)
+	ret, err := json.Marshal(features)
+
+	if err != nil {
+		fmt.Println("error")
+	}
 
 	w.Header().Set("Server", "bikefinder")
 	w.Header().Set("Content-Type", "application/json")
@@ -81,63 +85,14 @@ func getBikesNear(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (ds DockingStations) GetBikesNear(lat float64, lon float64, min_bikes int) {
-	err := DB.Read(&ds.DockingStationStatuses, "WHERE bikes >= "+strconv.Itoa(min_bikes))
-}
+func (ds *DockingStations) GetBikesNear(lat float64, lon float64, min_bikes int) {
+	sql := fmt.Sprintf("WHERE bikes >= %d ORDER BY (POW((lon-%.4f),2) + POW((lat-%.4f),2)) LIMIT 10", min_bikes, lon, lat)
+	err := DB.Read(&ds.DockingStationStatuses, sql)
 
-func get_stations(x0 float64, y0 float64, x1 float64, y1 float64, min_bikes int, min_docks int) ([]*DockingStationStatus, error) {
-
-	dockingStationStatuses := []*DockingStationStatus{}
-
-	err := DB.Read(&dockingStationStatuses)
-
-	features := []*gj.Feature{}
-	for _, dockingStation := range dockingStationStatuses {
-		properties := map[string]interface{}{"name": dockingStation.Name, "s": dockingStation.SchemeID, "i": dockingStation.DockId, "bikes": dockingStation.Bikes, "docks": dockingStation.Docks, "history": "/station"}
-		lat, _ := strconv.ParseFloat(dockingStation.Lat, 64)
-		lon, _ := strconv.ParseFloat(dockingStation.Lon, 64)
-		p := gj.NewPoint(gj.Coordinate{gj.CoordType(lon), gj.CoordType(lat)})
-		f := gj.NewFeature(p, properties, nil)
-		features = append(features, f)
-	}
-
-	return GetDockingStationStatuses, error
-
-}
-
-func station_history(w http.ResponseWriter, r *http.Request) {
-
-	dock_id := r.URL.Query().Get("i")
-	scheme_id := r.URL.Query().Get("s")
-
-	dockingStationStatuses := []*DockingStationStatus{}
-	fmt.Println(dock_id)
-	err := DB.Read(&dockingStationStatuses, "WHERE scheme_id = \""+scheme_id+"\" and dock_id = \""+dock_id+"\" and time >= now() - INTERVAL 1 DAY order by time asc")
 	if err != nil {
-		fmt.Println("err")
+		fmt.Println("error")
 		fmt.Println(err)
 	}
-
-	type History struct {
-		Time  time.Time
-		Bikes int
-		Docks int
-	}
-
-	history := []History{}
-	for _, dockingStation := range dockingStationStatuses {
-		var pointInTime History
-		pointInTime.Time = dockingStation.Time
-		pointInTime.Docks = dockingStation.Docks
-		pointInTime.Bikes = dockingStation.Bikes
-		history = append(history, pointInTime)
-	}
-
-	json, err := json.Marshal(history)
-
-	w.Header().Set("Server", "bikefinder")
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(json)
 
 }
 
