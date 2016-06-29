@@ -37,11 +37,7 @@ func main() {
 		return
 	}
 
-	//@todo - returns all stations. get from a file created using ingest?
-	http.HandleFunc("/stations", station)
-	//@todo - get info about a specific station - maybe history etc?
-	http.HandleFunc("/station/station-id", station)
-
+	http.HandleFunc("/bikes-near", getBikesNear)
 	http.HandleFunc("/ingest", ingest)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	bind := fmt.Sprintf("%s:%s", os.Getenv("OPENSHIFT_GO_IP"), os.Getenv("OPENSHIFT_GO_PORT"))
@@ -52,7 +48,64 @@ func main() {
 	}
 }
 
-func station(w http.ResponseWriter, r *http.Request) {
+func getBikesNear(w http.ResponseWriter, r *http.Request) {
+
+	lat := r.URL.Query().Get("lat")
+	lon := r.URL.Query().Get("lon")
+
+	var dockingStations DockingStations
+	dockingStations.GetBikesNear(lat, lon, 3)
+
+	/**
+	if err != nil {
+		fmt.Println("error")
+		return
+	}
+	*/
+
+	features := []*gj.Feature{}
+	for _, DockingStationStatus := range dockingStations.DockingStationStatuses {
+		properties := map[string]int()
+		lat, _ := strconv.ParseFloat(dockingStationStatus.Lat, 64)
+		lon, _ := strconv.ParseFloat(dockingStationStatus.Lon, 64)
+		p := gj.NewPoint(gj.Coordinate{gj.CoordType(lon), gj.CoordType(lat)})
+		f := gj.NewFeature(p, properties, nil)
+		features = append(features, f)
+	}
+
+	ret, err := json.Marshal(dockingStationStatuses)
+
+	w.Header().Set("Server", "bikefinder")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(ret)
+
+}
+
+func (ds DockingStations) GetBikesNear(lat float64, lon float64, min_bikes int) {
+	err := DB.Read(&ds.DockingStationStatuses, "WHERE bikes >= "+strconv.Itoa(min_bikes))
+}
+
+func get_stations(x0 float64, y0 float64, x1 float64, y1 float64, min_bikes int, min_docks int) ([]*DockingStationStatus, error) {
+
+	dockingStationStatuses := []*DockingStationStatus{}
+
+	err := DB.Read(&dockingStationStatuses)
+
+	features := []*gj.Feature{}
+	for _, dockingStation := range dockingStationStatuses {
+		properties := map[string]interface{}{"name": dockingStation.Name, "s": dockingStation.SchemeID, "i": dockingStation.DockId, "bikes": dockingStation.Bikes, "docks": dockingStation.Docks, "history": "/station"}
+		lat, _ := strconv.ParseFloat(dockingStation.Lat, 64)
+		lon, _ := strconv.ParseFloat(dockingStation.Lon, 64)
+		p := gj.NewPoint(gj.Coordinate{gj.CoordType(lon), gj.CoordType(lat)})
+		f := gj.NewFeature(p, properties, nil)
+		features = append(features, f)
+	}
+
+	return GetDockingStationStatuses, error
+
+}
+
+func station_history(w http.ResponseWriter, r *http.Request) {
 
 	dock_id := r.URL.Query().Get("i")
 	scheme_id := r.URL.Query().Get("s")

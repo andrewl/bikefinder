@@ -17,6 +17,16 @@ type DockingStationStatusCollector interface {
 	GetDockingStationStatuses() ([]DockingStationStatus, error)
 }
 
+//Interface to enable the discovery of free docks
+type FreeDockFinder interface {
+	GetFreeDocksNear()
+}
+
+//Interface to enable the discovery of bikes
+type BikeFinder interface {
+	GetBikesNear(lat float64, lon float64, min_bikes int)
+}
+
 func bikeHireSchemeFactory(config BikeHireSchemeConfig) (DockingStationStatusCollector, error) {
 
 	if config.Name == "" {
@@ -38,7 +48,8 @@ func bikeHireSchemeFactory(config BikeHireSchemeConfig) (DockingStationStatusCol
 	return nil, fmt.Errorf("cycleHireSchemeType %s not found", config.Type)
 }
 
-//@todo - add json here so we can (un)marshall to/from json
+//Representation of the status of a docking station, including information about
+//which scheme it's in, number of docks, bikes and current weather,
 type DockingStationStatus struct {
 	SchemeDockId  string    `sql:"varchar(255) primary-key required"`
 	RequestTime   time.Time `sql:"timestamp"`
@@ -53,4 +64,8 @@ type DockingStationStatus struct {
 	Temperature   int
 	Precipitation int
 	Windspeed     int
+}
+
+type DockingStations struct {
+	DockingStationStatuses []*DockingStationStatus
 }
