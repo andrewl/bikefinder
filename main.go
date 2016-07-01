@@ -65,7 +65,7 @@ func getBikesNear(w http.ResponseWriter, r *http.Request) {
 
 	features := []*gj.Feature{}
 	for _, dockingStationStatus := range dockingStations.DockingStationStatuses {
-		properties := map[string]interface{}{"name": dockingStationStatus.Name, "s": dockingStationStatus.SchemeID, "i": dockingStationStatus.DockId, "bikes": dockingStationStatus.Bikes, "docks": dockingStationStatus.Docks, "history": "/station"}
+		properties := map[string]interface{}{"name": dockingStationStatus.Name, "i": dockingStationStatus.DockId, "bikes": dockingStationStatus.Bikes, "docks": dockingStationStatus.Docks, "updated": dockingStationStatus.Time}
 		lat, _ := strconv.ParseFloat(dockingStationStatus.Lat, 64)
 		lon, _ := strconv.ParseFloat(dockingStationStatus.Lon, 64)
 		p := gj.NewPoint(gj.Coordinate{gj.CoordType(lon), gj.CoordType(lat)})
