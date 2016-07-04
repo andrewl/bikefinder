@@ -1,6 +1,9 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 import "encoding/xml"
 
 type SercoScheme struct {
@@ -14,6 +17,7 @@ type SercoScheme struct {
 func (scheme SercoScheme) GetDockingStationStatuses() (dockingStationStatuses []DockingStationStatus, err error) {
 
 	weather, _ := scheme.GetCurrentWeatherConditions(scheme.cityId)
+	var requestTime = time.Now()
 
 	type sercoDockingStation struct {
 		Id    string `xml:"id"`
@@ -43,6 +47,7 @@ func (scheme SercoScheme) GetDockingStationStatuses() (dockingStationStatuses []
 
 	for _, sercoDockingStation := range d.DockingStations {
 		var ds DockingStationStatus
+		ds.Time = requestTime
 		ds.Lat = sercoDockingStation.Lat
 		ds.Lon = sercoDockingStation.Lon
 		ds.DockId = sercoDockingStation.Id
