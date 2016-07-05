@@ -38,6 +38,7 @@ func main() {
 	}
 
 	http.HandleFunc("/bikes-near", getBikesNear)
+	http.HandleFunc("/freedocks-near", getFreeDocksNear)
 	http.HandleFunc("/ingest", ingest)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	bind := fmt.Sprintf("%s:%s", os.Getenv("OPENSHIFT_GO_IP"), os.Getenv("OPENSHIFT_GO_PORT"))
@@ -48,13 +49,28 @@ func main() {
 	}
 }
 
+func getFreeDocksNear(w http.ResponseWriter, r *http.Request) {
+	writeDockingStations(w, r, "bikes")
+}
+
 func getBikesNear(w http.ResponseWriter, r *http.Request) {
+	writeDockingStations(w, r, "docks")
+}
+
+func writeDockingStations(w http.ResponseWriter, r *http.Request, filter_type string) {
 
 	lat, _ := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
 	lon, _ := strconv.ParseFloat(r.URL.Query().Get("lon"), 64)
 
 	var dockingStations DockingStations
-	dockingStations.GetBikesNear(lat, lon, 3)
+
+	if filter_type == "bikes" {
+		dockingStations.GetBikesNear(lat, lon, 3)
+	} else {
+		dockingStations.GetFreeDocksNear(lat, lon, 3)
+	}
+
+	//@todo deal with 500s
 
 	/**
 	if err != nil {
@@ -93,7 +109,16 @@ func (ds *DockingStations) GetBikesNear(lat float64, lon float64, min_bikes int)
 		fmt.Println("error")
 		fmt.Println(err)
 	}
+}
 
+func (ds *DockingStations) GetFreeDocksNear(lat float64, lon float64, min_docks int) {
+	sql := fmt.Sprintf("WHERE docks >= %d ORDER BY (POW((lon-%.4f),2) + POW((lat-%.4f),2)) LIMIT 10", min_docks, lon, lat)
+	err := DB.Read(&ds.DockingStationStatuses, sql)
+
+	if err != nil {
+		fmt.Println("error")
+		fmt.Println(err)
+	}
 }
 
 /**

@@ -19,7 +19,7 @@ type DockingStationStatusCollector interface {
 
 //Interface to enable the discovery of free docks
 type FreeDockFinder interface {
-	GetFreeDocksNear()
+	GetFreeDocksNear(lat float64, lon float64, min_docks int)
 }
 
 //Interface to enable the discovery of bikes
