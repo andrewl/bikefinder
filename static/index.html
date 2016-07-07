@@ -10,6 +10,9 @@ body {
   font-size: 16px;
 }
 
+html{font-size:110%;}
+@media(min-width:60em){html{font-size: 90%}}
+
 .main {
   margin: 2%;
 }
@@ -88,7 +91,8 @@ Zepto(function($){
   $('#type_selector .button').on('click', function(e) {
     $('.button').removeClass('button-selected');
     $(this).addClass('button-selected');
-    if ($(this).attr("id") == "get_bikes") {
+    console.log($(this))
+    if ($(this).parent().attr("id") == "get_bikes") {
       navigator.geolocation.getCurrentPosition(get_bikes);
     }
     else {
