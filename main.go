@@ -65,9 +65,9 @@ func writeDockingStations(w http.ResponseWriter, r *http.Request, filter_type st
 	var dockingStations DockingStations
 
 	if filter_type == "bikes" {
-		dockingStations.GetBikesNear(lat, lon, 3)
+		dockingStations.GetBikesNear(lat, lon, 4)
 	} else {
-		dockingStations.GetFreeDocksNear(lat, lon, 3)
+		dockingStations.GetFreeDocksNear(lat, lon, 4)
 	}
 
 	//@todo deal with 500s
@@ -102,7 +102,7 @@ func writeDockingStations(w http.ResponseWriter, r *http.Request, filter_type st
 }
 
 func (ds *DockingStations) GetBikesNear(lat float64, lon float64, min_bikes int) {
-	sql := fmt.Sprintf("WHERE bikes >= %d ORDER BY (POW((lon-%.4f),2) + POW((lat-%.4f),2)) LIMIT 10", min_bikes, lon, lat)
+	sql := fmt.Sprintf("WHERE bikes >= %d AND lon > %.4f and lon < %.4f and lat > %.4f and lat < %.4f ORDER BY (POW((lon-%.4f),2) + POW((lat-%.4f),2)) LIMIT 10", min_bikes, lon-0.5, lon+0.5, lat-0.5, lat+0.5, lon, lat)
 	err := DB.Read(&ds.DockingStationStatuses, sql)
 
 	if err != nil {
