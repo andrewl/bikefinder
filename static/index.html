@@ -110,7 +110,7 @@ Zepto(function($){
     $('#spinner').show();
     $(results_selector).empty();
     $.ajax({type: 'GET',
-            url: '/bikes-near',
+            url: url,
             data: { lat: position.coords.latitude, lon: position.coords.longitude },
             success: function(data) {
               $(data).each(function(index) {
