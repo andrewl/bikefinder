@@ -1,5 +1,6 @@
 <html>
 <head>
+<meta name=viewport content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="css/malo.css" type="text/css"></link>
 <link rel="stylesheet" href="https://cdn.rawgit.com/theus/chart.css/v1.0.0/dist/chart.css" />
 <script src="http://zeptojs.com/zepto.min.js"></script>
@@ -11,7 +12,7 @@ body {
 }
 
 html{font-size:150%;}
-@media(min-device-width:800) {
+@media(min-width: 40.5em) {
   html{font-size: 90%}
 }
 
@@ -93,8 +94,7 @@ Zepto(function($){
   $('#type_selector .button').on('click', function(e) {
     $('.button').removeClass('button-selected');
     $(this).addClass('button-selected');
-    console.log($(this))
-    if ($(this).hasClass("bike-button") == "get_bikes") {
+    if ($(this).hasClass("bike-button")) {
       navigator.geolocation.getCurrentPosition(get_bikes);
     }
     else {
