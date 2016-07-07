@@ -94,7 +94,7 @@ Zepto(function($){
     $('.button').removeClass('button-selected');
     $(this).addClass('button-selected');
     console.log($(this))
-    if ($(this).parent().attr("id") == "get_bikes") {
+    if ($(this).hasClass("bike-button") == "get_bikes") {
       navigator.geolocation.getCurrentPosition(get_bikes);
     }
     else {
