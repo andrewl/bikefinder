@@ -1,6 +1,5 @@
 package main
 
-import "fmt"
 import "os"
 import "net/http"
 import "encoding/json"
@@ -25,9 +24,10 @@ func (ow OpenWeather) GetCurrentWeatherConditions(cityId string) (WeatherConditi
 	}
 
 	url := "http://api.openweathermap.org/data/2.5/weather?APPID=" + os.Getenv("OPENWEATHER_KEY") + "&id=" + cityId
-	fmt.Printf("url: %v\n", url)
+	logger.Log("msg", "Retrieving weather from", "url", url)
 	resp, err := http.Get(url)
 	if err != nil {
+		logger.Log("err", err)
 		return WeatherConditions{}, err
 	}
 
@@ -47,7 +47,7 @@ func (ow OpenWeather) GetCurrentWeatherConditions(cityId string) (WeatherConditi
 	var d OpenWeatherData
 
 	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
-		fmt.Printf("Weather error")
+		logger.Log("msg", "There was an error decoding weather data", "err", err)
 		return WeatherConditions{}, err
 	}
 
@@ -55,7 +55,6 @@ func (ow OpenWeather) GetCurrentWeatherConditions(cityId string) (WeatherConditi
 	c.Precipitation = int(d.Precipitation)
 	c.Temperature = int(d.Main.Temp / 10)
 	c.Windspeed = int(d.Wind.Speed)
-	fmt.Printf("Weather: %v\n", c)
 
 	return c, nil
 }

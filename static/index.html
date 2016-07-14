@@ -16,29 +16,32 @@ body {
 }
 
 .button {
-  border-radius: 25px;
-  padding: 20px;
+  padding-top: 20px;
   height: 50px;
-  width: 50%;
   text-align: center;
   font-size: 120%;
 }
 
 .bike-button {
-  border: 3px solid #c0392b;
-  background: #c0392b;
+  background: black;
+  color: white;
+}
+
+#bike_results {
+  background: black;
   color: white;
 }
 
 .dock-button {
-  border: 3px solid #2c3e50;
-  background: #2c3e50;
-  color: white;
+  background: white;
+  color: black;
 }
 
-.button-selected {
-  border: 3px solid black;
+#freedocks_results {
+  background: white;
+  color: black;
 }
+
 
 #messages {
   color: white;
@@ -53,24 +56,20 @@ img.map {
   display: none;
 }
 
-div {
-  margin-bottom: 20px;
+div.status {
+  padding-top: 20px;
 }
+
 </style>
 </head>
 <body class="main">
 <div id="type_selector" class="dp100">
-  <div id="get_bikes" class="dp25">
-  <div class="button bike-button">
+  <div class="button bike-button dp50">
   I want a bike
   </div>
-  </div>
-  <div id="get_freedocks" class="dp25">
-  <div class="button dock-button">
+  <div class="button dock-button dp50">
   I want a dock
   </div>
-  </div>
-  <div id="space" class="dp50">
 </div>
 <div id="messages" class="dp100"></div>
 <div id="spinner" class="dp100"><img src="/images/radio.gif"></div>
@@ -116,11 +115,11 @@ Zepto(function($){
               $(data).each(function(index) {
                 lon = this.geometry.coordinates[0];
                 lat = this.geometry.coordinates[1];
-                map_url = "https://api.mapbox.com/v4/mapbox.streets/url-https%3A%2F%2Fmapbox.com%2Fimg%2Frocket.png("+lon+","+lat+")/"+lon+","+lat+",15/256x256@2x.png?access_token=pk.eyJ1IjoiYW5kcmV3bCIsImEiOiJJdDlBVy0wIn0.6iigHBr09SrVB3N8graGdA";
+                map_url = "/map?lat=" + lat + "&lon=" + lon;
                 bikes_pct = parseInt(this.properties.bikes / (this.properties.bikes + this.properties.docks) * 100)
                 bikes_and_docks = this.properties.bikes + this.properties.docks;
                 chart_html = '<div class="charts" style="width: ' + (bikes_and_docks * 10) + 'px;"><div class="charts__chart chart--p100 chart--grey"><div class="charts__chart chart--p' + (bikes_pct) + ' chart--red"></div></div></div>';
-                $(results_selector).append("<div map_url='"+map_url+"'><p>" + this.properties.name + " (Updated: " + this.properties.updated + ") " + this.properties[property] + " " + property + ". <span class='show_map_link'>Show Map</span></p>" + chart_html + "<img class='map' src='' style='display: none;'/></div>");
+                $(results_selector).append("<div class='status' map_url='"+map_url+"'><p>" + this.properties.name + " (Updated: " + this.properties.updated + ") " + this.properties[property] + " " + property + ". <span class='show_map_link'>Show Map</span></p>" + chart_html + "<img class='map' src='' style='display: none;'/></div>");
               });
               $(results_selector + " span.show_map_link").on('click', function(e) {
                 if ($(this).hasClass('open')) {

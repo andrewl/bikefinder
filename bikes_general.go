@@ -3,7 +3,6 @@ package main
 import "fmt"
 import "time"
 
-// see https://play.golang.org/p/4uhm2K5e9A !!!!
 type BikeHireSchemeConfig struct {
 	Id           string `json:"id"`
 	Type         string
@@ -19,16 +18,15 @@ type DockingStationStatusCollector interface {
 
 //Interface to enable the discovery of free docks
 type FreeDockFinder interface {
-	GetFreeDocksNear(lat float64, lon float64, min_docks int)
+	GetFreeDocksNear(lat float64, lon float64, min_docks int) error
 }
 
 //Interface to enable the discovery of bikes
 type BikeFinder interface {
-	GetBikesNear(lat float64, lon float64, min_bikes int)
+	GetBikesNear(lat float64, lon float64, min_bikes int) error
 }
 
 func bikeHireSchemeFactory(config BikeHireSchemeConfig) (DockingStationStatusCollector, error) {
-
 	if config.Name == "" {
 		config.Name = config.Id
 	}
@@ -42,8 +40,9 @@ func bikeHireSchemeFactory(config BikeHireSchemeConfig) (DockingStationStatusCol
 		return BiciScheme{url: config.IngestionUri, name: config.Name, cityId: config.CityId}, nil
 	case "JCDecaux":
 		return JCDecauxScheme{url: config.IngestionUri, name: config.Name, cityId: config.CityId}, nil
-
 	}
+
+	logger.Log("msg", "Failed to find bike hire scheme "+config.Type)
 
 	return nil, fmt.Errorf("cycleHireSchemeType %s not found", config.Type)
 }

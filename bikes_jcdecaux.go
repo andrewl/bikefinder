@@ -4,7 +4,6 @@ import "net/http"
 import "encoding/json"
 import "os"
 import "strconv"
-import "log"
 import "fmt"
 
 type JCDecauxScheme struct {
@@ -30,10 +29,10 @@ func (scheme JCDecauxScheme) GetDockingStationStatuses() ([]DockingStationStatus
 	}
 
 	url := fmt.Sprint(scheme.url, "&apiKey=", os.Getenv("JCDECAUX_API_KEY"))
-	println(url)
+	logger.Log("msg", "Retrieving JCDecauxScheme statuses", "url", url)
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Print(err.Error())
+		logger.Log("msg", "There was an error retrieving the statuses", "err", err)
 		return []DockingStationStatus{}, err
 	}
 
