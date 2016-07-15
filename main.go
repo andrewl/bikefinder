@@ -1,8 +1,8 @@
 package main
 
-import (
-	"net/http"
-)
+import "net/http"
+import "github.com/azer/crud"
+import _ "github.com/go-sql-driver/mysql"
 import "encoding/json"
 import "fmt"
 import "os"
@@ -10,10 +10,6 @@ import "time"
 import "strconv"
 import "io/ioutil"
 import gj "github.com/kpawlik/geojson"
-import (
-	"github.com/azer/crud"
-	_ "github.com/go-sql-driver/mysql"
-)
 import "sync"
 import "github.com/go-kit/kit/log"
 

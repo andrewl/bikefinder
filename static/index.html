@@ -139,13 +139,16 @@ Zepto(function($){
                 display_message("Could not find any " + property + " near your current location");
                 return;
               }
+
+              single_bike_width = (document.getElementById('type_selector').clientWidth)/100;
+
               $(data).each(function(index) {
                 lon = this.geometry.coordinates[0];
                 lat = this.geometry.coordinates[1];
                 map_url = "/map?lat=" + lat + "&lon=" + lon;
                 bikes_pct = parseInt(this.properties.bikes / (this.properties.bikes + this.properties.docks) * 100)
                 bikes_and_docks = this.properties.bikes + this.properties.docks;
-                chart_html = '<div class="charts" style="width: ' + (bikes_and_docks * 10) + 'px;"><div class="charts__chart chart--p100 chart--grey"><div class="charts__chart chart--p' + (bikes_pct) + ' chart--red"></div></div></div>';
+                chart_html = '<div class="charts" style="width: ' + (bikes_and_docks * single_bike_width) + 'px;"><div class="charts__chart chart--p100 chart--grey"><div class="charts__chart chart--p' + (bikes_pct) + ' chart--red"></div></div></div>';
                 $(results_selector).append("<div class='status' map_url='"+map_url+"'><p>" + this.properties.name + " (Updated: " + this.properties.updated + ") " + this.properties[property] + " " + property + ". <span class='show_map_link'>Show Map</span></p>" + chart_html + "<img class='map' src='' style='display: none;'/></div>");
               });
               $(results_selector + " span.show_map_link").on('click', function(e) {
