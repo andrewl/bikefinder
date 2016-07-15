@@ -42,7 +42,6 @@ body {
   color: black;
 }
 
-
 #messages {
   color: white;
   background: black;
@@ -58,6 +57,14 @@ img.map {
 
 div.status {
   padding-top: 20px;
+  padding-left: 20px;
+}
+
+#messages p {
+  background: red;
+  color: white;
+  text-align: center;
+  padding: 10px;
 }
 
 </style>
@@ -71,7 +78,7 @@ div.status {
   I want a dock
   </div>
 </div>
-<div id="messages" class="dp100"></div>
+<div id="messages"></div>
 <div id="spinner" class="dp100"><img src="/images/radio.gif"></div>
 <div id="bike_results" class="dp100 results"></div>
 <div id="freedocks_results" class="dp100 results"></div>
@@ -79,10 +86,21 @@ div.status {
 <script>
 Zepto(function($){
 
+   function display_message(message) {
+     $('#messages').empty();
+     if (message) {
+       $('#messages').append('<p>' + message + '</p>');
+       $('#messages').show();
+     }
+     else {
+       $('#messages').hide();
+     }
+   }
+
    if (navigator.geolocation) {
      navigator.geolocation.getCurrentPosition(get_freedocks);
    } else {
-     $('#messages').append("<div>Please enable location services</div>");
+     display_message("Please enable location services");
    }
 
   $('#type_selector .button').on('click', function(e) {
@@ -105,13 +123,22 @@ Zepto(function($){
   }
 
   function get_results(position, url, property, results_selector) {
+    display_message('')
     $('.results').hide();
     $('#spinner').show();
     $(results_selector).empty();
     $.ajax({type: 'GET',
             url: url,
             data: { lat: position.coords.latitude, lon: position.coords.longitude },
+            error: function (request, status, error) {
+              display_message("Sorry, there was a problem retrieving the results.");
+            },
             success: function(data) {
+              $('#spinner').hide();
+              if($(data).length == 0) {
+                display_message("Could not find any " + property + " near your current location");
+                return;
+              }
               $(data).each(function(index) {
                 lon = this.geometry.coordinates[0];
                 lat = this.geometry.coordinates[1];
@@ -137,7 +164,6 @@ Zepto(function($){
                   $(this).html("Hide map");
                 }
               });
-              $('#spinner').hide();
               $(results_selector).show();
             }
            });

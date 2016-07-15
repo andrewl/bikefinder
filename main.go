@@ -15,10 +15,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 import "sync"
-import "github.com/aws/aws-sdk-go/aws"
-import "github.com/aws/aws-sdk-go/aws/session"
-import "github.com/aws/aws-sdk-go/service/s3"
-import "bytes"
 import "github.com/go-kit/kit/log"
 
 var DB *crud.DB
@@ -74,7 +70,7 @@ func getMap(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		var map_url = "https://api.mapbox.com/v4/mapbox.streets/url-https%3A%2F%2Fmapbox.com%2Fimg%2Frocket.png(" + lon + "," + lat + ")/" + lon + "," + lat + ",15/256x256.png?access_token=" + mapbox_access_token
+		var map_url = "https://api.mapbox.com/v4/mapbox.streets/url-https%3A%2F%2Fbikefinder-4ndrewl.rhcloud.com%2Fimages%2Fbike.png(" + lon + "," + lat + ")/" + lon + "," + lat + ",15/256x256.png?access_token=" + mapbox_access_token
 
 		logger.Log("msg", "cache-miss. Retrieving map from web", "url", map_url)
 
@@ -104,14 +100,14 @@ func getMap(w http.ResponseWriter, r *http.Request) {
  * Handler for returning a list of docking stations.
  */
 func getFreeDocksNear(w http.ResponseWriter, r *http.Request) {
-	writeDockingStations(w, r, "bikes")
+	writeDockingStations(w, r, "docks")
 }
 
 /**
  * Handler for returning a list of bikes.
  */
 func getBikesNear(w http.ResponseWriter, r *http.Request) {
-	writeDockingStations(w, r, "docks")
+	writeDockingStations(w, r, "bikes")
 }
 
 /**
@@ -167,7 +163,7 @@ func writeDockingStations(w http.ResponseWriter, r *http.Request, filter_type st
  * Retrieve bikes near a lat long
  */
 func (ds *DockingStations) GetBikesNear(lat float64, lon float64, min_bikes int) error {
-	sql := fmt.Sprintf("WHERE bikes >= %d AND lon > %.4f and lon < %.4f and lat > %.4f and lat < %.4f ORDER BY (POW((lon-%.4f),2) + POW((lat-%.4f),2)) LIMIT 10", min_bikes, lon-0.5, lon+0.5, lat-0.5, lat+0.5, lon, lat)
+	sql := fmt.Sprintf("WHERE bikes >= %d AND lon > %.4f and lon < %.4f and lat > %.4f and lat < %.4f ORDER BY (POW((lon-(%.4f)),2) + POW((lat-(%.4f)),2)) LIMIT 10", min_bikes, lon-0.5, lon+0.5, lat-0.5, lat+0.5, lon, lat)
 
 	logger.Log("msg", "Getting bikes near", "sql", sql)
 
@@ -194,66 +190,6 @@ func (ds *DockingStations) GetFreeDocksNear(lat float64, lon float64, min_docks 
 	}
 
 	return err
-}
-
-/**
- * Outputs the latest docking stations to a json file.
- * @todo this does two things. exports the raw json for archiving to S3(?)
- * but also produces the list of stations for consumption by the app
- * and that should be treated as a cache which is invalidated by
- * ingest. To be split out from this function and called if the file
- * does not exist in response to a call from /stations?
- */
-func write_current_stations_to_json() {
-
-	dockingStationStatuses := []*DockingStationStatus{}
-
-	err := DB.Read(&dockingStationStatuses)
-
-	features := []*gj.Feature{}
-	for _, dockingStation := range dockingStationStatuses {
-		properties := map[string]interface{}{"name": dockingStation.Name, "s": dockingStation.SchemeID, "i": dockingStation.DockId, "bikes": dockingStation.Bikes, "docks": dockingStation.Docks, "history": "/station"}
-		lat, _ := strconv.ParseFloat(dockingStation.Lat, 64)
-		lon, _ := strconv.ParseFloat(dockingStation.Lon, 64)
-		p := gj.NewPoint(gj.Coordinate{gj.CoordType(lon), gj.CoordType(lat)})
-		f := gj.NewFeature(p, properties, nil)
-		features = append(features, f)
-	}
-
-	static_json, err := json.Marshal(features)
-	err = ioutil.WriteFile("./static/stations.json", []byte(static_json), 0644)
-
-	if err != nil {
-		fmt.Println("err")
-		fmt.Println(err)
-	}
-
-	static_json, err = json.Marshal(dockingStationStatuses)
-	err = ioutil.WriteFile("./static/latest.json", []byte(static_json), 0644)
-
-	if err != nil {
-		fmt.Println("err")
-		fmt.Println(err)
-	}
-
-	svc := s3.New(session.New(), &aws.Config{Region: aws.String("us-west-2")})
-	params := &s3.PutObjectInput{
-		Bucket: aws.String("al-bikefinder"),                             // Required
-		Key:    aws.String(time.Now().Format("2006/01/02/150405.json")), // Required
-		Body:   bytes.NewReader([]byte(static_json))}
-
-	resp, err := svc.PutObject(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-
 }
 
 func ingest(w http.ResponseWriter, r *http.Request) {
@@ -303,8 +239,6 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Log("msg", "Done Ingesting")
-
-	write_current_stations_to_json()
 }
 
 /**
