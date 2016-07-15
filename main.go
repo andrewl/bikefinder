@@ -1,6 +1,9 @@
 package main
 
-import "net/http"
+import (
+	"net"
+	"net/http"
+)
 import "github.com/azer/crud"
 import _ "github.com/go-sql-driver/mysql"
 import "encoding/json"
@@ -189,6 +192,14 @@ func (ds *DockingStations) GetFreeDocksNear(lat float64, lon float64, min_docks 
 }
 
 func ingest(w http.ResponseWriter, r *http.Request) {
+
+	incoming_ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	valid_ip := os.Getenv("INGEST_IP")
+	if incoming_ip != valid_ip {
+		logger.Log("msg", "Attempt to ingest from invalid ip address", "ip", incoming_ip)
+		http.Error(w, "", 401)
+		return
+	}
 
 	config_file := os.Getenv("BIKEFINDER_CONFIG")
 	logger.Log("msg", "Startng Ingestion. Using config file at "+config_file)

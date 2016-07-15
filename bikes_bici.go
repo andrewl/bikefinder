@@ -3,7 +3,6 @@ package main
 import "net/http"
 import "encoding/json"
 import "strconv"
-import "log"
 
 type BiciScheme struct {
 	OpenWeather
@@ -26,7 +25,7 @@ func (scheme BiciScheme) GetDockingStationStatuses() ([]DockingStationStatus, er
 
 	resp, err := http.Get(scheme.url)
 	if err != nil {
-		log.Print("There was an error retrieving ", scheme.url)
+		logger.Log("msg", "There was an error retrieving the data", "url", scheme.url, "err", err)
 		return []DockingStationStatus{}, err
 	}
 
@@ -37,7 +36,7 @@ func (scheme BiciScheme) GetDockingStationStatuses() ([]DockingStationStatus, er
 	var bs = []biciStations{}
 
 	if err := json.NewDecoder(resp.Body).Decode(&bs); err != nil {
-		log.Print("Failed to decode json")
+		logger.Log("msg", "Failed to decode json", "err", err)
 		return []DockingStationStatus{}, err
 	}
 
