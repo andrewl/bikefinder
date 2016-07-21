@@ -42,8 +42,9 @@ func main() {
 
 	http.HandleFunc("/bikes-near", getBikesNear)
 	http.HandleFunc("/freedocks-near", getFreeDocksNear)
-	http.HandleFunc("/map", getMap)
+	http.HandleFunc("/stations", getStationsInside)
 	http.HandleFunc("/ingest", ingest)
+	http.HandleFunc("/map", getMap)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	bind := fmt.Sprintf("%s:%s", os.Getenv("OPENSHIFT_GO_IP"), os.Getenv("OPENSHIFT_GO_PORT"))
 	logger.Log("msg", "Attempting to listen on "+bind)
@@ -96,10 +97,17 @@ func getMap(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
+ * Handler for returning stations inside a bounding box
+ */
+func getStationsInside(w http.ResponseWriter, r *http.Request) {
+	writeDockingStations(w, r, "stations")
+}
+
+/**
  * Handler for returning a list of docking stations.
  */
 func getFreeDocksNear(w http.ResponseWriter, r *http.Request) {
-	writeDockingStations(w, r, "docks")
+	writeDockingStations(w, r, "freedocks")
 }
 
 /**
@@ -110,7 +118,7 @@ func getBikesNear(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
- *  Helper function to return a json object containing either bikes
+
  *  or free docks, or an error if that was not possible.
  *  @see getFreeDocksNear
  *  @see getBikesNear
@@ -119,6 +127,10 @@ func writeDockingStations(w http.ResponseWriter, r *http.Request, filter_type st
 
 	lat, _ := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
 	lon, _ := strconv.ParseFloat(r.URL.Query().Get("lon"), 64)
+	x0, _ := strconv.ParseFloat(r.URL.Query().Get("x0"), 64)
+	y0, _ := strconv.ParseFloat(r.URL.Query().Get("y0"), 64)
+	x1, _ := strconv.ParseFloat(r.URL.Query().Get("x1"), 64)
+	y1, _ := strconv.ParseFloat(r.URL.Query().Get("y1"), 64)
 
 	var dockingStations DockingStations
 	var err error
@@ -126,8 +138,14 @@ func writeDockingStations(w http.ResponseWriter, r *http.Request, filter_type st
 
 	if filter_type == "bikes" {
 		err = dockingStations.GetBikesNear(lat, lon, 4)
-	} else {
-		err = dockingStations.GetFreeDocksNear(lat, lon, 4)
+	}
+
+	if filter_type == "freedocks" {
+		err = dockingStations.GetBikesNear(lat, lon, 4)
+	}
+
+	if filter_type == "freedocks" {
+		err = dockingStations.GetStationsInside(x0, y0, x1, y1)
 	}
 
 	if err == nil {
@@ -165,6 +183,23 @@ func (ds *DockingStations) GetBikesNear(lat float64, lon float64, min_bikes int)
 	sql := fmt.Sprintf("WHERE bikes >= %d AND lon > %.4f and lon < %.4f and lat > %.4f and lat < %.4f ORDER BY (POW((lon-(%.4f)),2) + POW((lat-(%.4f)),2)) LIMIT 10", min_bikes, lon-0.5, lon+0.5, lat-0.5, lat+0.5, lon, lat)
 
 	logger.Log("msg", "Getting bikes near", "sql", sql)
+
+	err := DB.Read(&ds.DockingStationStatuses, sql)
+
+	if err != nil {
+		logger.Log("msg", "There was an error", "err", err)
+	}
+
+	return err
+}
+
+/**
+ * Retrieve bikes near a lat long
+ */
+func (ds *DockingStations) GetStationsInside(x0 float64, y0 float64, x1 float64, y1 float64) error {
+	sql := fmt.Sprintf("WHERE bikes >= %d AND lon > %.4f and lon < %.4f and lat > %.4f and lat < %.4f", x0, y0, x1, y1)
+
+	logger.Log("msg", "Getting stations near", "sql", sql)
 
 	err := DB.Read(&ds.DockingStationStatuses, sql)
 

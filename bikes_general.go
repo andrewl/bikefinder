@@ -26,6 +26,11 @@ type BikeFinder interface {
 	GetBikesNear(lat float64, lon float64, min_bikes int) error
 }
 
+//Interface to enable the discovery of station inside a bounding box
+type StationFinder interface {
+	GetStationsNear(x0 float64, y0 float64, x1 float64, y1 float64) error
+}
+
 func bikeHireSchemeFactory(config BikeHireSchemeConfig) (DockingStationStatusCollector, error) {
 	if config.Name == "" {
 		config.Name = config.Id

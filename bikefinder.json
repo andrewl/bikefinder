@@ -5,6 +5,9 @@
   "public_uri": "",
   "ingestion_uri": "https://www.bicing.cat/availability_map/getJsonObject",
   "city_id": "3128760"
+  "location": { "lat": 41.390205,
+                "lon": 2.154007
+              }
 }
 ,
 {
