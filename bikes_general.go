@@ -3,12 +3,17 @@ package main
 import "fmt"
 import "time"
 
+type BikeHireSchemePublicConfig struct {
+	Name      string `json:"name"`
+	PublicUri string `json:"public_uri"`
+	Location  string `json:"location"`
+}
+
 type BikeHireSchemeConfig struct {
+	BikeHireSchemePublicConfig
 	Id           string `json:"id"`
 	Type         string
-	Name         string `json:"name"`
 	IngestionUri string `json:"ingestion_uri"`
-	PublicUri    string `json:"public_uri"`
 	CityId       string `json:"city_id"`
 }
 

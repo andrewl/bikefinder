@@ -5,7 +5,6 @@
 <title>Bikefinder</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 <script src='https://code.jquery.com/jquery-1.11.0.min.js'></script>
-<script src="http://omnipotent.net/jquery.sparkline/2.1.2/jquery.sparkline.min.js.gz"></script>
 <script src='https://api.mapbox.com/mapbox.js/v2.2.4/mapbox.js'></script>
 <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/leaflet.markercluster.js'></script>
 <link href='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.css' rel='stylesheet' />
@@ -20,76 +19,101 @@
 
     <div id='map'></div>
 
-    <script>
-    L.mapbox.accessToken = 'pk.eyJ1IjoiYW5kcmV3bCIsImEiOiJJdDlBVy0wIn0.6iigHBr09SrVB3N8graGdA';
+<script>
+L.mapbox.accessToken = 'pk.eyJ1IjoiYW5kcmV3bCIsImEiOiJJdDlBVy0wIn0.6iigHBr09SrVB3N8graGdA';
 
- // ADD YOUR BASE TILES
-  var baseLayer = L.tileLayer('http://a.tiles.mapbox.com/v3/landplanner.map-4y9ngu48/{z}/{x}/{y}.png', {
-    maxZoom: 5 
-  });
- 
-  // DEFINE THE CLUSTER LAYER
-  var markers = L.markerClusterGroup();
+// Add the base and cluster layers and construct the map
+var baseLayer = L.tileLayer('http://a.tiles.mapbox.com/v3/landplanner.map-4y9ngu48/{z}/{x}/{y}.png', {
+  maxZoom: 5 
+});
+var markers = L.markerClusterGroup();
+var map = L.mapbox.map('map', 'mapbox.streets');
+baseLayer.addTo(map);
+markers.addTo(map);
+scheme_markers = [];
+previous_bounds = null;
+previous_zoom_level = null;
 
-    // CONSTRUCT THE MAP
-    var map = L.mapbox.map('map', 'mapbox.streets');
-    baseLayer.addTo(map);
-    markers.addTo(map);
+/**
+ * When the map is to be redrawn then add
+ * either the schemes or the stations to the
+ * marker layers depending on the current  
+ * zoom level
+ */
+redraw_map = function() {
 
-map.on('viewreset', function(e) {
+  var is_redraw_necessary = true;
 
-  if (map.getZoom() < 10) {
-    return;
+  bounds = map.getBounds();
+
+  if (previous_bounds != null) {
+    if (previous_bounds.contains(bounds)) {
+      is_redraw_necessary = false;
+    }
   }
 
   markers.clearLayers();
 
-// CALL THE GEOJSON HERE
+  // If we're zoomed out far enough show the schemes
+  // Otherwise show the stations
+  if (map.getZoom() < 10) {
+    showSchemes();
+  }
+  else {
+    showStations();
+  }
+
+}
+
+
+
+showSchemes = function() {
   bounds = map.getBounds();
-  $.getJSON("/stations.json?x0=" + bounds.getWest() + "&y0=" + bounds.getSouth() + "&x1=" + bounds.getEast() + "&y1=" + bounds.getNorth(), function(data) {
+  scheme_markers = [];
+  $.getJSON("/schemes", function(data) {
+
+    $(data).each(function(idx, scheme) {
+      if (scheme.location.length) {
+        coords = scheme.location.split(","); 
+        scheme_markers.push(L.marker(L.latLng(coords[0], coords[1])));
+      }
+    });
+
+    $(scheme_markers).each(function(i) {
+      this.on('click', function(e) {
+        map.setView(this._latlng, 11)
+      });
+      markers.addLayer(this)
+    });
+  });
+}
+
+showStations = function() {
+  bounds = map.getBounds();
+  $.getJSON("/stations?x0=" + bounds.getWest() + "&y0=" + bounds.getSouth() + "&x1=" + bounds.getEast() + "&y1=" + bounds.getNorth(), function(data) {
 
     var geojson = L.geoJson(data, {
       onEachFeature: function (feature, layer) {
-        // USE A CUSTOM MARKER
-        if (feature.properties.docks < 5) {
-          color = 'ffffff'
-        }
-        else if (feature.properties.bikes < 5) {
-          color = 'ff0000'
-        }
-        else {
-          color = '00ff00'
-        }
-
-        layer.setIcon(L.mapbox.marker.icon({'marker-symbol': 'bicycle', 'marker-color': color}));
+        layer.setIcon(L.mapbox.marker.icon({'marker-symbol': 'bicycle', 'marker-color': '00ff00'}));
       }
     });
     markers.addLayer(geojson);
-
 
     markers.on('click', function(e) {
         if (!e.layer.feature.properties) return;
         feature = e.layer.feature;
         var latlng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0])
-        content = "<h1>" + feature.properties.name + "</h1><strong>Bikes: </strong>" + feature.properties.bikes + "<br/><strong>Docks: </strong>" + feature.properties.docks + "<br/><div id='sparkline_container' style='width: 200px'><div id='sparkline'>Loading history...</div></div>";
+        content = "<h1>" + feature.properties.name + "</h1><strong>Bikes: </strong>" + feature.properties.bikes + "<br/><strong>Docks: </strong>" + feature.properties.docks + "<br/>";
         var popup = L.popup()
         .setLatLng(latlng)
         .setContent(content)
         .openOn(map);
-
-        $.getJSON("/station?i=" + feature.properties.i + "&s=" + feature.properties.s, function(data) {
-          sparkline_data = []
-          $.each(data, function(i, d) {
-            sparkline_data.push(d.Bikes+":"+d.Docks)
-          });
-          $("#sparkline").sparkline(sparkline_data, {type: 'bar', barWidth: 1,
-              barSpacing: 0});
-        });
-
       });
-
   });
-});
+}
+
+map.on('viewreset', redraw_map);
+map.setView(L.latLng(0,0), 2);
 </script>
 
 </body>

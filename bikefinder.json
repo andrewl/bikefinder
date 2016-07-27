@@ -2,28 +2,38 @@
 {
   "id": "barcelona",
   "type": "Bici",
-  "public_uri": "",
   "ingestion_uri": "https://www.bicing.cat/availability_map/getJsonObject",
-  "city_id": "3128760"
-  "location": { "lat": 41.390205,
-                "lon": 2.154007
-              }
-}
-,
+  "city_id": "3128760",
+  "name": "Barcelona",
+  "public_uri": "",
+  "location": "41.390205,2.154007"
+},
+{
+  "id": "chicago",
+  "type": "Bici",
+  "ingestion_uri": "https://www.divvybikes.com/stations/json",
+  "city_id": "4887398",
+  "name": "Chicago",
+  "public_uri": "",
+  "location": "-87.650047,41.850029"
+},
 {
   "id": "london",
   "type": "Serco",
-  "public_uri": "",
   "ingestion_uri": "http://www.tfl.gov.uk/serco/syndication/feeds/cycle-hire/livecyclehireupdates.xml",
-  "city_id": "2643743"
+  "city_id": "2643743",
+  "public_uri": "",
+  "name": "London",
+  "location": "51.515419,-0.141099"
 },
-
 {
   "id": "vilnius",
   "type": "JCDecaux",
   "public_uri": "",
   "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Vilnius",
-  "city_id": "593116"
+  "city_id": "593116",
+  "name": "Vilnius",
+  "location": "54.687157,25.279652"
 },
 {
   "id": "lillestrom",
@@ -31,34 +41,44 @@
   "public_uri": "",
   "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Lillestrom",
   "save": "true",
-  "city_id": "3147465"
+  "city_id": "3147465",
+  "name": "Lillestrøm",
+  "location": "59.95597,11.04918"
 },
 {
   "id": "dublin",
   "type": "JCDecaux",
   "public_uri": "",
   "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Dublin",
-  "city_id": "2964574"
+  "city_id": "2964574",
+  "name": "Dublin",
+  "location": "53.33306,-6.24889"
 },
 {
   "id": "paris",
   "type": "JCDecaux",
   "public_uri": "",
   "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Paris",
-  "city_id": "2988507"
+  "city_id": "2988507",
+  "name": "Paris",
+  "location": "48.85341,2.3488"
 },
 {
   "id": "toyama",
   "type": "JCDecaux",
   "public_uri": "",
   "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Toyama",
-  "city_id": "1853072"
+  "city_id": "1853072",
+  "name": "Toyama-shi",
+  "location": "36.69528,137.21139"
 },
 {
   "id": "seville",
   "type": "JCDecaux",
   "public_uri": "",
   "ingestion_uri": "https://api.jcdecaux.com/vls/v1/stations?contract=Seville",
-  "city_id": "2510170"
+  "city_id": "2510170",
+  "name": "Sevilla",
+  "location": "37.38283,-5.97317"
 }
 ]

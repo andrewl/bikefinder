@@ -40,11 +40,12 @@ func main() {
 		panic(err)
 	}
 
+	http.HandleFunc("/schemes", getSchemes)
+	http.HandleFunc("/stations", getStationsInside)
 	http.HandleFunc("/bikes-near", getBikesNear)
 	http.HandleFunc("/freedocks-near", getFreeDocksNear)
-	http.HandleFunc("/stations", getStationsInside)
-	http.HandleFunc("/ingest", ingest)
 	http.HandleFunc("/map", getMap)
+	http.HandleFunc("/ingest", ingest)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	bind := fmt.Sprintf("%s:%s", os.Getenv("OPENSHIFT_GO_IP"), os.Getenv("OPENSHIFT_GO_PORT"))
 	logger.Log("msg", "Attempting to listen on "+bind)
@@ -118,7 +119,6 @@ func getBikesNear(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
-
  *  or free docks, or an error if that was not possible.
  *  @see getFreeDocksNear
  *  @see getBikesNear
@@ -144,7 +144,7 @@ func writeDockingStations(w http.ResponseWriter, r *http.Request, filter_type st
 		err = dockingStations.GetBikesNear(lat, lon, 4)
 	}
 
-	if filter_type == "freedocks" {
+	if filter_type == "stations" {
 		err = dockingStations.GetStationsInside(x0, y0, x1, y1)
 	}
 
@@ -197,9 +197,9 @@ func (ds *DockingStations) GetBikesNear(lat float64, lon float64, min_bikes int)
  * Retrieve bikes near a lat long
  */
 func (ds *DockingStations) GetStationsInside(x0 float64, y0 float64, x1 float64, y1 float64) error {
-	sql := fmt.Sprintf("WHERE bikes >= %d AND lon > %.4f and lon < %.4f and lat > %.4f and lat < %.4f", x0, y0, x1, y1)
+	sql := fmt.Sprintf("WHERE lon > %.4f and lon < %.4f and lat > %.4f and lat < %.4f", x0, y0, x1, y1)
 
-	logger.Log("msg", "Getting stations near", "sql", sql)
+	logger.Log("msg", "Getting stations inside", "sql", sql)
 
 	err := DB.Read(&ds.DockingStationStatuses, sql)
 
@@ -224,6 +224,30 @@ func (ds *DockingStations) GetFreeDocksNear(lat float64, lon float64, min_docks 
 	}
 
 	return err
+}
+
+func getSchemes(w http.ResponseWriter, r *http.Request) {
+
+	config_file := os.Getenv("BIKEFINDER_CONFIG")
+	file, _ := os.Open(config_file)
+	decoder := json.NewDecoder(file)
+	configuration := []BikeHireSchemeConfig{}
+	err := decoder.Decode(&configuration)
+	if err != nil {
+		logger.Log("msg", "Failed retrieve config", "err", err)
+		return
+	}
+	var public_config = []BikeHireSchemePublicConfig{}
+	for _, schemeConfig := range configuration {
+		public_config = append(public_config, schemeConfig.BikeHireSchemePublicConfig)
+	}
+
+	ret, err := json.Marshal(public_config)
+
+	w.Header().Set("Server", "bikefinder")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(ret)
+
 }
 
 func ingest(w http.ResponseWriter, r *http.Request) {
