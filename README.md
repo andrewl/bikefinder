@@ -78,6 +78,7 @@ OPENSHIFT_GO_IP - the IP address to listen for requests on
 OPENSHIFT_GO_PORT - the port to listen for requests on
 
 BIKEFINDER_CONFIG - the json file containing configuration of the bicycle hire schemes. The json consists of an array of objects with the following schema:
+```
 {
   //The internal id of the scheme
   "id": "barcelona",
@@ -100,7 +101,7 @@ BIKEFINDER_CONFIG - the json file containing configuration of the bicycle hire s
   //A comma separated lat-long of the scheme.
   "location": "41.390205,2.154007"
 }
-
+```
 
 Deployment on Heroku
 --------------------
