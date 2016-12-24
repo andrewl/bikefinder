@@ -305,6 +305,29 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Log("msg", "Done Ingesting")
+
+	logger.Log("msg", "Dumping all bikes")
+
+	var dss []DockingStationStatus
+	err = DB.Read(&dss)
+
+	if err != nil {
+		logger.Log("msg", "There was an error", "err", err)
+	}
+	ret, err := json.Marshal(dss)
+
+	if err != nil {
+		//@todo set return code
+		logger.Log("msg", "There was an error dumping docking stations", "err", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{msg: \"There was an error\"}"))
+		return
+	}
+
+	w.Header().Set("Server", "bikefinder")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(ret)
+
 }
 
 /**
