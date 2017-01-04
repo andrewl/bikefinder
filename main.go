@@ -26,7 +26,7 @@ func main() {
 	logger.Log("msg", "Starting bikefinder")
 	var err error
 
-	db_url := os.Getenv("DATABASE_URL")
+	db_url := os.Getenv("BF_DATABASE_URL")
 	DB, err = crud.Connect("mysql", db_url)
 
 	if err != nil {
@@ -47,7 +47,7 @@ func main() {
 	http.HandleFunc("/map", getMap)
 	http.HandleFunc("/ingest", ingest)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	bind := fmt.Sprintf("%s:%s", os.Getenv("OPENSHIFT_GO_IP"), os.Getenv("OPENSHIFT_GO_PORT"))
+	bind := fmt.Sprintf("%s:%s", os.Getenv("BF_IP"), os.Getenv("BF_PORT"))
 	logger.Log("msg", "Attempting to listen on "+bind)
 	err = http.ListenAndServe(bind, nil)
 	if err != nil {
@@ -228,7 +228,7 @@ func (ds *DockingStations) GetFreeDocksNear(lat float64, lon float64, min_docks 
 
 func getSchemes(w http.ResponseWriter, r *http.Request) {
 
-	config_file := os.Getenv("BIKEFINDER_CONFIG")
+	config_file := os.Getenv("BF_CONFIG")
 	file, _ := os.Open(config_file)
 	decoder := json.NewDecoder(file)
 	configuration := []BikeHireSchemeConfig{}
@@ -253,14 +253,14 @@ func getSchemes(w http.ResponseWriter, r *http.Request) {
 func ingest(w http.ResponseWriter, r *http.Request) {
 
 	incoming_ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-	valid_ip := os.Getenv("INGEST_IP")
+	valid_ip := os.Getenv("BF_INGEST_IP")
 	if incoming_ip != valid_ip {
 		logger.Log("msg", "Attempt to ingest from invalid ip address", "ip", incoming_ip)
 		http.Error(w, "", 401)
 		return
 	}
 
-	config_file := os.Getenv("BIKEFINDER_CONFIG")
+	config_file := os.Getenv("BF_CONFIG")
 	logger.Log("msg", "Startng Ingestion. Using config file at "+config_file)
 	file, _ := os.Open(config_file)
 	decoder := json.NewDecoder(file)
